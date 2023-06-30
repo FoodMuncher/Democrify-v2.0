@@ -30,11 +30,7 @@ defmodule DemocrifyWeb.SongLive.FormComponent do
 
         if tracks != [] do
           convert_tracks(tracks)
-        else
-          nil
         end
-      else
-        nil
       end
 
     changeset =
