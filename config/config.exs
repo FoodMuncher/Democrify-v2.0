@@ -7,6 +7,9 @@
 # General application configuration
 import Config
 
+config :democrify, Democrify,
+  env: config_env()
+
 # Configures the endpoint
 config :democrify, DemocrifyWeb.Endpoint,
   url: [host: "localhost"],
