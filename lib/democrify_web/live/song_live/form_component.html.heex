@@ -1,5 +1,5 @@
-<div>
-  <h2><%= @title %></h2>
+<div class="flex flex-col items-center">
+  <h2 class="font-bold text-2xl pb-2"><%= @title %></h2>
 
   <.form
     :let={f}
@@ -8,17 +8,25 @@
     phx-target={@myself}
     phx-change="validate"
     phx-submit="save">
-  
-    <%= label f, :song_name %>
-    <%= text_input f, :query, autocomplete: "off" %>
-    <%= if @suggested_songs do %>
-      <%= select f, :track_id, @suggested_songs %>
-    <% end %>
-    <%!-- TODO: Fix this... --%>
-    <%!-- <%= error_tag f, :song_name %> --%>
-  
-    <div>
-      <%= submit "Save", phx_disable_with: "Saving..." %>
+    <div class="flex flex-col items-center">
+      <%= text_input f, :query, 
+        placeholder: "Enter Song Name",
+        autocomplete: "off",
+        class: "border-maroon-900"
+      %>
+
+      <%= if @suggested_songs do %>
+        <%= select f, :track_id, @suggested_songs, class: "max-w-min"%>
+      <% end %>
+      
+      <%!-- TODO: Fix this... --%>
+      <%!-- <%= error_tag f, :song_name %> --%>
+
+      <%= submit "Save", 
+        phx_disable_with: "Saving...", 
+        class: "border rounded-lg p-2 mt-2 hover:text-champagne-100 hover:bg-maroon-900" 
+      %>
+      
     </div>
   </.form>
 </div>
