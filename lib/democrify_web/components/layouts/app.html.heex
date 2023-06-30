@@ -1,21 +1,8 @@
 <div class="flex flex-row font-mono text-maroon-900">
-  <aside class="pt-6 flex flex-col tracking-wider border-maroon-900 font-semibold w-[15%] h-screen border-r bg-champagne-200">
+  <aside class="pt-6 flex flex-col tracking-wider border-maroon-900 font-semibold w-[15%] h-screen border-r bg-champagne-200 items-center">
     <.link href={~p"/"} class="w-full h-14 mb-7 text-xl text-center border-b">Democrify</.link>
 
-    <div class="text-center pt-6">
-      <form action="/join">
-        <input 
-          id="session_id" 
-          type="text" 
-          name="session_id" 
-          placeholder="Enter Session ID" 
-          autocomplete="off"
-          class="focus:outline:none"
-        >
-        <br><br>
-        <input class="cursor-pointer border rounded-md p-2" type="submit" value="Join Session">
-      </form> 
-    </div>
+    <span class="font-normal">Current Session: <%= @session_id %></span>
     
   </aside>
   <main class="w-full bg-champagne-100">
