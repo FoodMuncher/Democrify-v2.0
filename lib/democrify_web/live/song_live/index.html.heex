@@ -1,0 +1,21 @@
+<h1>Session: <%= @session_id %></h1>
+
+<%= if @live_action in [:new, :edit] do %>
+  <%= live_modal DemocrifyWeb.SongLive.FormComponent,
+    id: @song.id || :new,
+    session_id: @session_id,
+    access_token: @access_token,
+    title: @page_title,
+    action: @live_action,
+    song: @song,
+    return_to: ~p"/session" %>
+<% end %>
+
+
+<div id="song">
+  <%= for song <- @session do %>
+    <%= live_component DemocrifyWeb.SongLive.SongComponent, id: song.id, song: song, session_id: @session_id %>
+  <% end %>
+</div>
+
+<span><%= live_patch "New Song", to: ~p"/session/new" %></span>

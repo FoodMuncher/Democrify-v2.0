@@ -1,0 +1,16 @@
+<%# <section class="phx-hero"> %>
+<section>
+  <%# <div class="page"> %>
+  <div>
+    <h1>Log In Page</h1>
+    <div class="button">
+      <%= button "Log Into Spotify", to: ~p"/login", method: :get %>
+    </div>
+    <br><br>
+    <form action="/join">
+      <label for="fname">Session ID:</label><br><br>
+      <input class ="textInput" type="text" id="session_id" name="session_id" placeholder="Enter Session ID" autocomplete="off">
+      <input class="submitButton" type="submit" value="Submit">
+    </form> 
+  </div>
+</section>
