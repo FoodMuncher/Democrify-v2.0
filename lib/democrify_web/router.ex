@@ -28,9 +28,6 @@ defmodule DemocrifyWeb.Router do
     live "/session", SongLive.Index, :index
     live "/session/new/", SongLive.Index, :new
     live "/session/:id/edit", SongLive.Index, :edit
-
-    live "/session/:id", SongLive.Show, :show
-    live "/session/:id/show/edit", SongLive.Show, :edit
   end
 
   # Other scopes may use custom stacks.

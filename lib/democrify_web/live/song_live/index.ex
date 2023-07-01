@@ -37,7 +37,7 @@ defmodule DemocrifyWeb.SongLive.Index do
 
   defp apply_action(socket, :new, _params) do
     socket
-    |> assign(:page_title, "New Song")
+    |> assign(:page_title, "Add Song")
     |> assign(:song, %Song{})
   end
 

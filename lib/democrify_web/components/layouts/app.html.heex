@@ -1,5 +1,23 @@
-<main class="container">
-  <p class="alert alert-info" role="alert"><%= Phoenix.Flash.get(@flash, :info) %></p>
-  <p class="alert alert-danger" role="alert"><%= Phoenix.Flash.get(@flash, :error) %></p>
-  <%= @inner_content %>
-</main>
+<div class="flex flex-row font-mono text-maroon-900">
+  <aside class="pt-6 flex flex-col tracking-wider border-maroon-900 font-semibold w-[15%] min-h-screen border-r bg-champagne-200 items-center">
+    <.link href={~p"/"} class="w-full h-14 mb-7 text-xl text-center border-b">Democrify</.link>
+
+    <span class="font-normal">
+      Current Session: <%= @session_id %>
+    </span>
+
+    <span class="mt-6">
+      <%= live_patch "Add Song", 
+        to: ~p"/session/new", 
+        class: "border rounded-lg py-2 px-8 font-normal pointer-cursor hover:text-champagne-100 hover:bg-maroon-900" 
+      %>
+    </span>
+    
+  </aside>
+  <main class="w-full bg-champagne-100">
+    <.flash_group flash={@flash} />
+    <%= @inner_content %>
+  </main>
+</div>
+
+
