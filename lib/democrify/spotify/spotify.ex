@@ -3,7 +3,7 @@ defmodule Democrify.Spotify do
   Module for handling any Spotify API interactions
   """
 
-  alias Democrify.Spotify.{Tokens, Track, Search, Status}
+  alias Democrify.Spotify.{Tokens, Track, Search, Status, Profile}
 
   require Logger
 
@@ -18,11 +18,19 @@ defmodule Democrify.Spotify do
   #  API Functions
   # ===========================================================
 
-  def authorize_url do
-    "https://accounts.spotify.com/authorize/?response_type=code&client_id=#{@client_id}&scope=#{@scope}&redirect_uri=#{@redirect_uri}"
+  @doc """
+    Returns the authorize URL for spotify, with a different callback depending on the type of login.
+  """
+  @spec authorize_url(String.t()) :: String.t()
+  def authorize_url(type) do
+    "https://accounts.spotify.com/authorize/?response_type=code&client_id=#{@client_id}&scope=#{@scope}&redirect_uri=#{@redirect_uri}/#{type}"
   end
 
-  def get_authorisation_tokens(code) do
+  @doc """
+    Calls the second stage of the Spotify auth to get the access token
+  """
+  @spec get_authorisation_tokens(String.t(), String.t()) :: Tokens.t()
+  def get_authorisation_tokens(code, type) do
     url = "https://accounts.spotify.com/api/token"
 
     request_body =
@@ -30,7 +38,7 @@ defmodule Democrify.Spotify do
        [
          grant_type: "authorization_code",
          code: code,
-         redirect_uri: @redirect_uri,
+         redirect_uri: "#{@redirect_uri}/#{type}",
          client_id: @client_id,
          client_secret: @client_secret
        ]}
@@ -39,10 +47,19 @@ defmodule Democrify.Spotify do
     Tokens.constructor(response)
   end
 
+  def get_user_information(access_token) do
+    response =
+      HTTPoison.get!("https://api.spotify.com/v1/me",
+        auth_header(access_token)
+      )
+
+    Profile.constructor(response)
+  end
+
   def get_track(track_id, access_token) do
     response =
       HTTPoison.get!("https://api.spotify.com/v1/tracks/#{track_id}",
-        Authorization: "Bearer #{access_token}"
+        auth_header(access_token)
       )
 
     Track.constructor(response)
@@ -52,7 +69,7 @@ defmodule Democrify.Spotify do
     response =
       HTTPoison.get!(
         URI.encode("https://api.spotify.com/v1/search?q=#{query}&type=track&limit=10"),
-        Authorization: "Bearer #{access_token}"
+        auth_header(access_token)
       )
 
     Search.constructor(response)
@@ -61,7 +78,7 @@ defmodule Democrify.Spotify do
   def get_player_status(access_token) do
     response =
       HTTPoison.get!("https://api.spotify.com/v1/me/player",
-        Authorization: "Bearer #{access_token}"
+        auth_header(access_token)
       )
 
     Status.constructor(response)
@@ -73,7 +90,15 @@ defmodule Democrify.Spotify do
     HTTPoison.post!(
       URI.encode("https://api.spotify.com/v1/me/player/queue?uri=#{track_uri}"),
       "",
-      Authorization: "Bearer #{access_token}"
+      auth_header(access_token)
     )
+  end
+
+  # ===========================================================
+  #  Internal Functions
+  # ===========================================================
+
+  defp auth_header(access_token) do
+    [Authorization: "Bearer #{access_token}"]
   end
 end
