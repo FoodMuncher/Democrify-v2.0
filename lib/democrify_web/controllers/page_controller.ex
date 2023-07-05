@@ -55,7 +55,8 @@ defmodule DemocrifyWeb.PageController do
     SessionData.add(session_id, access_token)
 
     conn
-    |> put_session(:session_id, session_id)
+    |> put_session(:user,         Spotify.get_user_information(access_token))
+    |> put_session(:session_id,   session_id)
     |> put_session(:access_token, access_token)
     |> redirect(to: ~p"/session")
   end

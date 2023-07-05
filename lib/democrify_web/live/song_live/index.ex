@@ -1,4 +1,5 @@
 defmodule DemocrifyWeb.SongLive.Index do
+  require Logger
   use DemocrifyWeb, :live_view
 
   alias Democrify.Session
@@ -13,8 +14,9 @@ defmodule DemocrifyWeb.SongLive.Index do
 
       {:ok,
        socket
-       |> assign(:session, Session.list_session(session_id))
-       |> assign(:session_id, session_id)
+       |> assign(:user,         session["user"])
+       |> assign(:session,      Session.list_session(session_id))
+       |> assign(:session_id,   session_id)
        |> assign(:access_token, session["access_token"])}
     else
       {:ok, redirect(socket, to: ~p"/")}
@@ -49,6 +51,7 @@ defmodule DemocrifyWeb.SongLive.Index do
 
   @impl true
   def handle_event("delete", %{"id" => id}, socket) do
+    Logger.info("User: #{inspect socket.assigns.user, pretty: true}")
     session_id = socket.assigns.session_id
 
     ## TODO: Potential improvement, delete handles ID and song, saves fetching and deleting...
