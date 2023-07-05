@@ -16,7 +16,7 @@ defmodule Democrify.Session.Data do
     :ets.insert(__MODULE__, {session_id, access_token})
   end
 
-  @spec fetch(any) :: [tuple]
+  @spec fetch(String.t()) :: [{String.t(), String.t()}]
   def fetch(session_id) do
     :ets.lookup(__MODULE__, session_id)
   end

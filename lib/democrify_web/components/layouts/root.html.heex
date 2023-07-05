@@ -18,6 +18,7 @@
           <a><%= link "LiveDashboard", to: ~p"/dev/dashboard" %></a>
         <% end %>
     </header>
+    <.flash_group flash={@flash} />
     <%= @inner_content %>
   </body>
 </html>

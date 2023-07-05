@@ -1,6 +1,8 @@
 defmodule Democrify.Spotify.Player do
   use GenServer, restart: :temporary
 
+  # TODO: This whole module needs a tidy up!
+
   alias Democrify.Spotify
 
   def start_link(session_id) do

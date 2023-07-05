@@ -4,18 +4,18 @@ defmodule Democrify.Spotify.Tokens do
   # ===========================================================
 
   @type t :: %__MODULE__{
-          access_token: String.t(),
-          token_type: String.t(),
-          scope: String.t(),
-          expires_in: Integer.t(),
-          refresh_token: String.t()
-        }
+    scope:         String.t(),
+    token_type:    String.t(),
+    expires_in:    Integer.t(),
+    access_token:  String.t(),
+    refresh_token: String.t()
+  }
 
   defstruct [
-    :access_token,
-    :token_type,
     :scope,
+    :token_type,
     :expires_in,
+    :access_token,
     :refresh_token
   ]
 
@@ -24,6 +24,6 @@ defmodule Democrify.Spotify.Tokens do
   # ===========================================================
 
   def constructor(response) do
-    Poison.decode!(response.body, %{as: %Democrify.Spotify.Tokens{}})
+    Poison.decode!(response.body, %{as: %__MODULE__{}})
   end
 end

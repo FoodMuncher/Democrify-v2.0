@@ -6,8 +6,8 @@ defmodule Democrify.Spotify.Search do
   # ===========================================================
 
   @type t :: %__MODULE__{
-          tracks: Tracks.t()
-        }
+    tracks: Tracks.t()
+  }
 
   defstruct [
     :tracks
@@ -18,10 +18,8 @@ defmodule Democrify.Spotify.Search do
   # ===========================================================
 
   def constructor(response) do
-    Poison.decode!(response.body, %{
-      as: %__MODULE__{
-        :tracks => Tracks.structure()
-      }
-    })
+    Poison.decode!(response.body, %{as: %__MODULE__{
+      tracks: Tracks.structure()
+    }})
   end
 end

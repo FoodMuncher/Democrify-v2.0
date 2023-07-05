@@ -1,18 +1,26 @@
 <%= if @live_action in [:new, :edit] do %>
   <%= live_modal DemocrifyWeb.SongLive.FormComponent,
-    id: @song.id || :new,
-    session_id: @session_id,
+    id:           @song.id || :new,
+    song:         @song,
+    title:        @page_title,
+    action:       @live_action,
+    user_id:      @user_id,
+    username:     @username,
+    session_id:   @session_id,
     access_token: @access_token,
-    title: @page_title,
-    action: @live_action,
-    song: @song,
-    return_to: ~p"/session" %>
+    return_to:    ~p"/session"
+  %>
 <% end %>
 
 <div class="flex flex-col items-center">
   <div id="song">
     <%= for song <- @session do %>
-      <%= live_component DemocrifyWeb.SongLive.SongComponent, id: song.id, song: song, session_id: @session_id %>
+      <%= live_component DemocrifyWeb.SongLive.SongComponent, 
+        id:         song.id, 
+        song:       song, 
+        user_id:    @user_id,
+        session_id: @session_id
+      %>
     <% end %>
   </div>
 </div>

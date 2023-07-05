@@ -1,60 +1,79 @@
 defmodule DemocrifyWeb.PageController do
   use DemocrifyWeb, :controller
 
+  require Logger
   alias Democrify.Spotify
   alias Democrify.Session
   alias Democrify.Session.Data, as: SessionData
+  alias Democrify.Spotify.Tokens
 
   # ===========================================================
   # Home Page Handlers
   # ===========================================================
 
+  @doc """
+    Handles the static loading of the home page
+  """
+  @spec index(Plug.Conn.t(), map()) :: Plug.Conn.t()
   def index(conn, _params) do
     conn
     |> put_layout(false)
     |> render("index.html")
   end
 
-  def join(conn, params) do
-    # TODO: Check session exists, if it doesn't send to home with a flash card
-
-    session_id = params["session_id"]
-
-    access_token = SessionData.fetch!(session_id)
-
-    conn
-    |> put_session(:session_id, session_id)
-    |> put_session(:access_token, access_token)
-    |> redirect(to: ~p"/session")
-  end
-
   # ===========================================================
   #  Spotify Login Handlers
   # ===========================================================
 
-  def login(conn, _params) do
-    redirect(conn, external: Spotify.authorize_url())
+  @doc """
+    TODO:
+  """
+  @spec login(Plug.Conn.t(), map()) :: Plug.Conn.t()
+  def login(conn, %{"type" => type} = params) when type in ["create", "join"] do
+    Logger.info("Params: #{inspect params}")
+    redirect(conn, external: Spotify.authorize_url(type))
   end
 
-  def callback(conn, params) do
-    authorisation_tokens = Spotify.get_authorisation_tokens(params["code"])
+  @doc """
+    TODO:
+  """
+  @spec callback(Plug.Conn.t(), map()) :: Plug.Conn.t()
+  def callback(conn, %{"type" => type} = params) when type in ["create", "join"] do
+    %Tokens{access_token: access_token} = Spotify.get_authorisation_tokens(params["code"], type)
 
     session_id = get_session(conn, "session_id")
-    # TODO: kill existing session, or ask to resume
+
     session_id =
-      if session_id == nil || not Session.exists?(session_id) do
-        Session.create_session()
+      if (type == "create") && (is_nil(session_id) || not Session.exists?(session_id)) do
+        Session.create_session(access_token)
       else
+        # TODO:  If create, as if the user wants to kill existing session or resume
         session_id
       end
 
-    access_token = authorisation_tokens.access_token
-
-    SessionData.add(session_id, access_token)
-
     conn
-    |> put_session(:session_id, session_id)
+    |> put_session(:user,         Spotify.get_user_information(access_token))
+    |> put_session(:session_id,   session_id)
     |> put_session(:access_token, access_token)
     |> redirect(to: ~p"/session")
+  end
+
+  @doc """
+    TODO:
+  """
+  @spec join(Plug.Conn.t(), map()) :: Plug.Conn.t()
+  def join(conn, params) do
+    case SessionData.fetch(params["session_id"]) do
+      [{session_id, access_token}] ->
+        conn
+        |> put_session(:session_id,   session_id)
+        |> put_session(:access_token, access_token)
+        |> redirect(to: ~p"/login/join")
+
+      [] ->
+        conn
+        |> put_flash(:error, "'#{params["session_id"]}' doesn't look to be a current session!!")
+        |> redirect(to: ~p"/")
+    end
   end
 end
