@@ -5,6 +5,7 @@ defmodule Democrify.Session.Song do
   @spotify_image_url "https://upload.wikimedia.org/wikipedia/commons/thu…text.svg/1024px-Spotify_logo_without_text.svg.png"
 
   # TODO: Change this to a struct????
+  # TODO: Change user_votes to a MapSet...
 
   schema "session" do
     field :name,       :string
@@ -20,7 +21,7 @@ defmodule Democrify.Session.Song do
   end
 
   @doc false
-  def changeset(song, attrs) do
+  def changeset(song = %__MODULE__{}, attrs) do
     song
     |> cast(attrs, [:name])
     |> validate_required([:name])
