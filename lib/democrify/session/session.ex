@@ -17,10 +17,10 @@ defmodule Democrify.Session do
   @doc """
     Creates a new Session Worker and returns the session_id.
   """
-  @spec create_session() :: String.t()
-  def create_session() do
+  @spec create_session(String.t()) :: String.t()
+  def create_session(access_token) do
     session_id = generate_id()
-    Registry.create(session_id)
+    Registry.create(session_id, access_token)
     session_id
   end
 
