@@ -52,6 +52,17 @@ defmodule Democrify.Session do
   end
 
   @doc """
+    Decrements the given songs vote counter, unless the user hasn't voted for this song.
+    Returns the updated list of songs for this session.
+  """
+  @spec decrement_vote(Song.t(), String.t(), String.t()) :: [Song.t()]
+  def decrement_vote(%Song{} = song, user_id, session_id) do
+    Registry.lookup!(session_id)
+    |> Worker.decrement(user_id, song)
+    |> broadcast(session_id, :songs_changed)
+  end
+
+  @doc """
     Returns the song corresponding to the given song id.
   """
   @spec get_song!(Integer.t(), String.t()) :: Song.t()

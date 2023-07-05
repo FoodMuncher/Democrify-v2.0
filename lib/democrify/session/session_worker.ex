@@ -70,6 +70,14 @@ defmodule Democrify.Session.Worker do
   end
 
   @doc """
+    Decrements the song's votes in the session
+  """
+  @spec decrement(pid(), String.t(), Song.t()) :: [Song.t()]
+  def decrement(worker_pid, user_id, %Song{id: song_id}) do
+    GenServer.call(worker_pid, {:decrement, user_id, song_id})
+  end
+
+  @doc """
     Update the given song in the session.
   """
   @spec update(pid(), Song.t()) :: [Song.t()]
@@ -134,14 +142,33 @@ defmodule Democrify.Session.Worker do
             vote_count: song.vote_count + 1,
             user_votes: Map.put(song.user_votes, user_id, nil)
           }
-          updated_session = increment_session(updated_session, song, [])
+          updated_session = add_song_to_session(updated_session, song, [])
           {:reply, strip_ids(updated_session), %__MODULE__{state | session: updated_session}}
         else
           Logger.warn("User already voted!!!")
           {:reply, strip_ids(session), state}
         end
       nil ->
-        Logger.error("Received unknown update for Song: #{song_id}")
+        Logger.error("Received unknown increment for Song: #{song_id}")
+        {:reply, strip_ids(session), state}
+    end
+  end
+  def handle_call({:decrement, user_id, song_id}, _from, state = %__MODULE__{session: session}) do
+    case List.keytake(session, song_id, 0) do
+      {{^song_id, song = %Song{}}, updated_session} ->
+        if Map.has_key?(song.user_votes, user_id) do
+          song = %Song{song |
+            vote_count: song.vote_count - 1,
+            user_votes: Map.delete(song.user_votes, user_id)
+          }
+          updated_session = add_song_to_session(updated_session, song, [])
+          {:reply, strip_ids(updated_session), %__MODULE__{state | session: updated_session}}
+        else
+          Logger.warn("User hasn't voted!!!")
+          {:reply, strip_ids(session), state}
+        end
+      nil ->
+        Logger.error("Received unknown decrement for Song: #{song_id}")
         {:reply, strip_ids(session), state}
     end
   end
@@ -170,13 +197,13 @@ defmodule Democrify.Session.Worker do
   # =================================
 
     # TODO: Improve this logic??
-  defp increment_session([], bumped_song = %Song{}, acc) do
+  defp add_song_to_session([], bumped_song = %Song{}, acc) do
     acc ++ [{bumped_song.id, bumped_song}]
   end
-  defp increment_session([{song_id, song = %Song{}} | tail] = list, bumped_song = %Song{}, acc) do
+  defp add_song_to_session([{song_id, song = %Song{}} | tail] = list, bumped_song = %Song{}, acc) do
     case song.vote_count < bumped_song.vote_count do
       false ->
-        increment_session(tail, bumped_song, acc ++ [{song_id, song}])
+        add_song_to_session(tail, bumped_song, acc ++ [{song_id, song}])
 
       true ->
         acc ++ [{bumped_song.id, bumped_song}] ++ list
