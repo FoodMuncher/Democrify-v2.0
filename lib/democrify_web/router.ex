@@ -21,8 +21,8 @@ defmodule DemocrifyWeb.Router do
     get "/join", PageController, :join
 
     # Spotify Login
-    get "/login", PageController, :login
-    get "/callback", PageController, :callback
+    get "/login/:type",    PageController, :login
+    get "/callback/:type", PageController, :callback
 
     # Live View
     live "/session", SongLive.Index, :index
