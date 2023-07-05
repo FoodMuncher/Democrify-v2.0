@@ -4,14 +4,14 @@ defmodule Democrify.Spotify.Image do
   # ===========================================================
 
   @type t :: %Democrify.Spotify.Image{
-          url: String.t(),
-          height: Integer.t(),
-          width: Integer.t()
-        }
+    url:    String.t(),
+    width:  Integer.t(),
+    height: Integer.t()
+  }
 
   defstruct [
     :url,
-    :height,
-    :width
+    :width,
+    :height
   ]
 end

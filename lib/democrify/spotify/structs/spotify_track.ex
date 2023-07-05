@@ -6,20 +6,20 @@ defmodule Democrify.Spotify.Track do
   # ===========================================================
 
   @type t :: %Democrify.Spotify.Track{
-          album: Album.t(),
-          artists: [%Artist{}],
-          name: String.t(),
-          id: String.t(),
-          duration_ms: Integer.t()
-        }
+    id:          String.t(),
+    name:        String.t(),
+    album:       Album.t(),
+    artists:     [%Artist{}],
+    duration_ms: Integer.t()
+  }
 
   defstruct [
+    :id,
+    :uri,
+    :name,
     :album,
     :artists,
-    :name,
-    :id,
-    :duration_ms,
-    :uri
+    :duration_ms
   ]
 
   # ===========================================================

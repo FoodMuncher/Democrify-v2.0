@@ -6,8 +6,8 @@ defmodule Democrify.Spotify.Tracks do
   # ===========================================================
 
   @type t :: %__MODULE__{
-          items: Track.t()
-        }
+    items: Track.t()
+  }
 
   defstruct [
     :items
