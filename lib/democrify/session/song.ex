@@ -9,10 +9,11 @@ defmodule Democrify.Session.Song do
 
   schema "session" do
     field :name,       :string
-    field :track_id,   :string
     field :artists,    :string
+    field :user_id,    :string
+    field :username,   :string
+    field :track_id,   :string
     field :track_uri,  :string
-    field :username,   :string,  default: "Joe"
     field :vote_count, :integer, default: 0
     field :user_votes, :map,     default: Map.new()
     field :image_url,  :string,  default: @spotify_image_url

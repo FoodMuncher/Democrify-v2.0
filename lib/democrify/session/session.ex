@@ -5,8 +5,10 @@ defmodule Democrify.Session do
   """
 
   require Logger
-  alias Democrify.Session.{Song, Registry, Worker}
+
   alias Democrify.Spotify
+  alias Democrify.Spotify.Track
+  alias Democrify.Session.{Song, Registry, Worker}
 
   # ========================================
   # Exported Functions
@@ -75,10 +77,10 @@ defmodule Democrify.Session do
     Fetches the song information from the Spotify API and adds the song to the session.
     Returns the updated list of songs for this session.
   """
-  @spec create_song(String.t(), String.t(), String.t()) :: [Song.t()]
-  def create_song(track_id, session_id, access_token) do
+  @spec create_song(String.t(), String.t(), String.t(), String.t(), String.t()) :: [Song.t()]
+  def create_song(track_id, session_id, access_token, username, user_id) do
     Registry.lookup!(session_id)
-    |> Worker.add(fetch_song(track_id, access_token))
+    |> Worker.add(fetch_song(track_id, access_token, username, user_id))
     |> broadcast(session_id, :songs_changed)
   end
 
@@ -143,19 +145,22 @@ defmodule Democrify.Session do
     |> Integer.to_string(36)
   end
 
-  defp fetch_song(track_id, access_token) do
-    fetch_song(track_id, access_token, %Song{})
+  defp fetch_song(track_id, access_token, username, user_id) do
+    fetch_song(track_id, access_token, %Song{
+      user_id:  user_id,
+      username: username
+    })
   end
 
   defp fetch_song(track_id, access_token, song) do
-    track = Spotify.get_track(track_id, access_token)
+    track = %Track{} = Spotify.get_track(track_id, access_token)
 
     %Song{song |
-      name: track.name,
-      artists: Song.artists(track.artists),
-      image_url: hd(track.album.images).url,
-      track_id: track_id,
-      track_uri: track.uri
+      name:      track.name,
+      artists:   Song.artists(track.artists),
+      track_id:  track_id,
+      track_uri: track.uri,
+      image_url: hd(track.album.images).url
     }
   end
 end
