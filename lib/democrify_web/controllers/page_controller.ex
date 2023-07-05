@@ -52,7 +52,7 @@ defmodule DemocrifyWeb.PageController do
 
     access_token = authorisation_tokens.access_token
 
-    SessionData.add(session_id, access_token)
+    if type == "create", do: SessionData.add(session_id, access_token)
 
     conn
     |> put_session(:user,         Spotify.get_user_information(access_token))
