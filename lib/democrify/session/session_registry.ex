@@ -19,7 +19,7 @@ defmodule Democrify.Session.Registry do
   @doc """
     Creates a new session and adds it to the registry
   """
-  @spec start_link(String.t(), String.t()) :: pid()
+  @spec create(String.t(), String.t()) :: pid()
   def create(session_id, access_token) do
     GenServer.call(__MODULE__, {:create, session_id, access_token})
   end
