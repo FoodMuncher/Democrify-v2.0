@@ -51,19 +51,17 @@ defmodule DemocrifyWeb.SongLive.SongComponent do
 
           <%!-- Edit Button --%>
 
-          <div>
-            <%= live_patch to: ~p"/session/#{@song.id}/edit" do %>
-              <p>edit</p>
-            <% end %>
-          </div>
+          <.edit_button
+            song_id={@song.id}
+            users_choice={@song.user_id == @user_id}
+          />
 
           <%!-- Delete Button --%>
 
-          <div>
-            <%= link to: "#", phx_click: "delete", phx_value_id: @song.id do %>
-              <p>delete</p>
-            <% end %>
-          </div>
+          <.delete_button
+            song_id={@song.id}
+            users_choice={@song.user_id == @user_id}
+          />
         </div>
       </div>
     """
@@ -106,4 +104,28 @@ defmodule DemocrifyWeb.SongLive.SongComponent do
 
   defp vote_icon(true),  do: "hero-heart-solid"
   defp vote_icon(false), do: "hero-heart"
+
+  defp edit_button(assigns) do
+    ~H"""
+    <div>
+      <%= if @users_choice do %>
+        <%= live_patch to: ~p"/session/#{@song_id}/edit" do %>
+          <p>edit</p>
+        <% end %>
+      <% end %>
+    </div>
+    """
+  end
+
+  defp delete_button(assigns) do
+    ~H"""
+    <div>
+      <%= if @users_choice do %>
+        <%= link to: "#", phx_click: "delete", phx_value_id: @song_id do %>
+          <p>delete</p>
+        <% end %>
+      <% end %>
+    </div>
+    """
+  end
 end
