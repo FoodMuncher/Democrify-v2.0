@@ -72,6 +72,7 @@ defmodule Democrify.Session do
     songs
   end
 
+  # TODO: Maybe use some pet name dep, so it's green-dragon-fly etc
   defp generate_id do
     min = String.to_integer("100000", 36)
     max = String.to_integer("ZZZZZZ", 36)
