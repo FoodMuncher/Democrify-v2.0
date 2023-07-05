@@ -4,6 +4,7 @@ defmodule DemocrifyWeb.SongLive.Index do
 
   alias Democrify.Session
   alias Democrify.Session.Song
+  alias Democrify.Spotify.Profile
 
   @impl true
   def mount(_params, session, socket) do
@@ -12,9 +13,12 @@ defmodule DemocrifyWeb.SongLive.Index do
     if session_id != nil && Session.exists?(session_id) do
       if connected?(socket), do: Session.subscribe(session_id)
 
+      # TODO: Safer handling here....
+      %Profile{id: id} = session["user"]
+
       {:ok,
        socket
-       |> assign(:user,         session["user"])
+       |> assign(:user_id,      id)
        |> assign(:session,      Session.list_session(session_id))
        |> assign(:session_id,   session_id)
        |> assign(:access_token, session["access_token"])}
@@ -51,7 +55,6 @@ defmodule DemocrifyWeb.SongLive.Index do
 
   @impl true
   def handle_event("delete", %{"id" => id}, socket) do
-    Logger.info("User: #{inspect socket.assigns.user, pretty: true}")
     session_id = socket.assigns.session_id
 
     ## TODO: Potential improvement, delete handles ID and song, saves fetching and deleting...

@@ -46,11 +46,11 @@ defmodule Democrify.Session.Worker do
     Returns the song for the given ID.
   """
   @spec fetch(pid(), integer() | String.t()) :: Song.t()
-  def fetch(worker_pid, id) when is_binary(id) do
-    fetch(worker_pid, String.to_integer(id))
+  def fetch(worker_pid, song_id) when is_binary(song_id) do
+    fetch(worker_pid, String.to_integer(song_id))
   end
-  def fetch(worker_pid, id) when is_integer(id) do
-    GenServer.call(worker_pid, {:fetch, id})
+  def fetch(worker_pid, song_id) when is_integer(song_id) do
+    GenServer.call(worker_pid, {:fetch, song_id})
   end
 
   @doc """
@@ -64,9 +64,9 @@ defmodule Democrify.Session.Worker do
   @doc """
     Increments the song's votes in the session
   """
-  @spec increment(pid(), Song.t()) :: [Song.t()]
-  def increment(worker_pid, %Song{id: id}) do
-    GenServer.call(worker_pid, {:increment, id})
+  @spec increment(pid(), String.t(), Song.t()) :: [Song.t()]
+  def increment(worker_pid, user_id, %Song{id: song_id}) do
+    GenServer.call(worker_pid, {:increment, user_id, song_id})
   end
 
   @doc """
@@ -125,15 +125,23 @@ defmodule Democrify.Session.Worker do
     session = state.session ++ [{state.id, %Song{song | id: state.id}}]
     {:reply, strip_ids(session), %__MODULE__{state | session: session, id: state.id + 1}}
   end
-  def handle_call({:increment, id}, _from, state = %__MODULE__{session: session}) do
-    case List.keytake(session, id, 0) do
-      {{^id, song}, session} ->
-        song = %Song{song | vote_count: song.vote_count + 1}
-        session = increment(session, song, [])
-        {:reply, strip_ids(session), %__MODULE__{state | session: session}}
-
+  # TODO: This could do with a tidy...
+  def handle_call({:increment, user_id, song_id}, _from, state = %__MODULE__{session: session}) do
+    case List.keytake(session, song_id, 0) do
+      {{^song_id, song = %Song{}}, updated_session} ->
+        unless Map.has_key?(song.user_votes, user_id) do
+          song = %Song{song |
+            vote_count: song.vote_count + 1,
+            user_votes: Map.put(song.user_votes, user_id, nil)
+          }
+          updated_session = increment_session(updated_session, song, [])
+          {:reply, strip_ids(updated_session), %__MODULE__{state | session: updated_session}}
+        else
+          Logger.warn("User already voted!!!")
+          {:reply, strip_ids(session), state}
+        end
       nil ->
-        Logger.error("Received unknown update for Song: #{id}")
+        Logger.error("Received unknown update for Song: #{song_id}")
         {:reply, strip_ids(session), state}
     end
   end
@@ -145,8 +153,8 @@ defmodule Democrify.Session.Worker do
 
     {:reply, strip_ids(session), %__MODULE__{state | session: session}}
   end
-  def handle_call({:delete, id}, _from, state = %__MODULE__{}) do
-    session = List.keydelete(state.session, id, 0)
+  def handle_call({:delete, song_id}, _from, state = %__MODULE__{}) do
+    session = List.keydelete(state.session, song_id, 0)
     {:reply, strip_ids(session), %__MODULE__{state | session: session}}
   end
 
@@ -162,14 +170,13 @@ defmodule Democrify.Session.Worker do
   # =================================
 
     # TODO: Improve this logic??
-  defp increment([], bumped_song, acc) do
+  defp increment_session([], bumped_song = %Song{}, acc) do
     acc ++ [{bumped_song.id, bumped_song}]
   end
-
-  defp increment([{id, song} | tail] = list, bumped_song, acc) do
+  defp increment_session([{song_id, song = %Song{}} | tail] = list, bumped_song = %Song{}, acc) do
     case song.vote_count < bumped_song.vote_count do
       false ->
-        increment(tail, bumped_song, acc ++ [{id, song}])
+        increment_session(tail, bumped_song, acc ++ [{song_id, song}])
 
       true ->
         acc ++ [{bumped_song.id, bumped_song}] ++ list
@@ -177,6 +184,6 @@ defmodule Democrify.Session.Worker do
   end
 
   defp strip_ids(list) do
-    for {_id, song} <- list, do: song
+    for {_song_id, song} <- list, do: song
   end
 end
