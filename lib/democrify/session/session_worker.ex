@@ -18,38 +18,69 @@ defmodule Democrify.Session.Worker do
   # API Functions
   # =================================
 
+  @doc """
+    Starts the Session Worker.
+  """
+  @spec start_link(map()) :: GenServer.on_start()
   def start_link(init_args) do
     GenServer.start_link(__MODULE__, init_args)
   end
 
+  @doc """
+    Returns all the songs currently in this session..
+  """
+  @spec fetch_all(pid()) :: [Song.t()]
   def fetch_all(worker_pid) do
     GenServer.call(worker_pid, :fetch_all)
   end
 
+  @doc """
+    Returns the current most voted track.
+  """
+  @spec fetch_top_track(pid()) :: Song.t() | nil
   def fetch_top_track(worker_pid) do
     GenServer.call(worker_pid, :fetch_top_song)
   end
 
+  @doc """
+    Returns the song for the given ID.
+  """
+  @spec fetch(pid(), integer() | String.t()) :: Song.t()
   def fetch(worker_pid, id) when is_binary(id) do
     fetch(worker_pid, String.to_integer(id))
   end
-
   def fetch(worker_pid, id) when is_integer(id) do
     GenServer.call(worker_pid, {:fetch, id})
   end
 
+  @doc """
+    Adds the given song to the session.
+  """
+  @spec add(pid(), Song.t()) :: [Song.t()]
   def add(worker_pid, song) do
     GenServer.call(worker_pid, {:add, song})
   end
 
+  @doc """
+    Increments the song's votes in the session
+  """
+  @spec increment(pid(), Song.t()) :: [Song.t()]
   def increment(worker_pid, %Song{id: id}) do
     GenServer.call(worker_pid, {:increment, id})
   end
 
+  @doc """
+    Update the given song in the session.
+  """
+  @spec update(pid(), Song.t()) :: [Song.t()]
   def update(worker_pid, song) do
     GenServer.call(worker_pid, {:update, song})
   end
 
+  @doc """
+    remove the song from the session.
+  """
+  @spec delete(pid(), Song.t()) :: [Song.t()]
   def delete(worker_pid, %Song{id: id}) do
     GenServer.call(worker_pid, {:delete, id})
   end
@@ -108,8 +139,10 @@ defmodule Democrify.Session.Worker do
   end
   # TODO: Add test for this guy
   def handle_call({:update, song}, _from, state = %__MODULE__{}) do
-    session = List.keydelete(state.session, song.id, 0)
-    session = session ++ [{song.id, song}]
+    session = state.session
+    |> List.keydelete(song.id, 0)
+    |> Kernel.++([{song.id, song}])
+
     {:reply, strip_ids(session), %__MODULE__{state | session: session}}
   end
   def handle_call({:delete, id}, _from, state = %__MODULE__{}) do
@@ -128,6 +161,7 @@ defmodule Democrify.Session.Worker do
   # Internal functions
   # =================================
 
+    # TODO: Improve this logic??
   defp increment([], bumped_song, acc) do
     acc ++ [{bumped_song.id, bumped_song}]
   end
