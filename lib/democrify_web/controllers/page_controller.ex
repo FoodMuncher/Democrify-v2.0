@@ -5,6 +5,7 @@ defmodule DemocrifyWeb.PageController do
   alias Democrify.Spotify
   alias Democrify.Session
   alias Democrify.Session.Data, as: SessionData
+  alias Democrify.Spotify.Tokens
 
   # ===========================================================
   # Home Page Handlers
@@ -38,21 +39,17 @@ defmodule DemocrifyWeb.PageController do
   """
   @spec callback(Plug.Conn.t(), map()) :: Plug.Conn.t()
   def callback(conn, %{"type" => type} = params) when type in ["create", "join"] do
-    authorisation_tokens = Spotify.get_authorisation_tokens(params["code"], type)
+    %Tokens{access_token: access_token} = Spotify.get_authorisation_tokens(params["code"], type)
 
     session_id = get_session(conn, "session_id")
 
     session_id =
       if (type == "create") && (is_nil(session_id) || not Session.exists?(session_id)) do
-        Session.create_session()
+        Session.create_session(access_token)
       else
         # TODO:  If create, as if the user wants to kill existing session or resume
         session_id
       end
-
-    access_token = authorisation_tokens.access_token
-
-    if type == "create", do: SessionData.add(session_id, access_token)
 
     conn
     |> put_session(:user,         Spotify.get_user_information(access_token))
