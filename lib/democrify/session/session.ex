@@ -1,47 +1,81 @@
 defmodule Democrify.Session do
   @moduledoc """
   The Session context.
+  TODO: specs and docs!!
   """
 
+  require Logger
   alias Democrify.Session.{Song, Registry, Worker}
   alias Democrify.Spotify
 
-  # External Functions
+  # ========================================
+  # Exported Functions
   # ========================================
 
-  def create_session do
+  @doc """
+    Creates a new Session Worker and returns the session_id.
+  """
+  @spec create_session() :: String.t()
+  def create_session() do
     session_id = generate_id()
     Registry.create(session_id)
     session_id
   end
 
+  @doc """
+    Checks if the session_id corresponds to a live SessionWorker.
+  """
+  @spec exists?(String.t()) :: boolean()
   def exists?(session_id) do
     Registry.lookup(session_id) != {:error, :notfound}
   end
 
+  @doc """
+    Returns the songs in order for the given session id.
+  """
+  @spec list_session(String.t()) :: [Song.t()]
   def list_session(session_id) do
     # TODO: Use actual session ID
     Registry.lookup!(session_id)
     |> Worker.fetch_all()
   end
 
-  def inc_votes(%Song{} = song, session_id) do
+  @doc """
+    Increments the given songs vote counter, unless the user has already voted for this song.
+    Returns the updated list of songs for this session.
+  """
+  @spec increment_vote(Song.t(), String.t(), String.t()) :: [Song.t()]
+  def increment_vote(%Song{} = song, user_id, session_id) do
     Registry.lookup!(session_id)
-    |> Worker.increment(song)
+    |> Worker.increment(user_id, song)
     |> broadcast(session_id, :songs_changed)
   end
 
+  @doc """
+    Returns the song corresponding to the given song id.
+  """
+  @spec get_song!(Integer.t(), String.t()) :: Song.t()
   def get_song!(song_id, session_id) do
     Registry.lookup!(session_id)
     |> Worker.fetch(song_id)
   end
 
+  @doc """
+    Fetches the song information from the Spotify API and adds the song to the session.
+    Returns the updated list of songs for this session.
+  """
+  @spec create_song(String.t(), String.t(), String.t()) :: [Song.t()]
   def create_song(track_id, session_id, access_token) do
     Registry.lookup!(session_id)
     |> Worker.add(fetch_song(track_id, access_token))
     |> broadcast(session_id, :songs_changed)
   end
 
+  @doc """
+    Removes the given song from the session and adds the new song.
+    Returns the updated list of songs for this session.
+  """
+  @spec update_song(String.t(), String.t(), String.t(), Song.t()) :: [Song.t()]
   def update_song(track_id, session_id, access_token, %Song{} = song) do
     song = fetch_song(track_id, access_token, song)
 
@@ -50,20 +84,34 @@ defmodule Democrify.Session do
     |> broadcast(session_id, :songs_changed)
   end
 
+  @doc """
+    Deletes the song from teh session.
+    Returns the updated list of songs for this session.
+  """
+  @spec delete_song(Song.t(), String.t()) :: [Song.t()]
   def delete_song(%Song{} = song, session_id) do
     Registry.lookup!(session_id)
     |> Worker.delete(song)
     |> broadcast(session_id, :songs_changed)
   end
 
+  @doc """
+    TODO: Do this doc and spec...
+  """
+  @spec change_song(Song.t(), map()) :: any()
   def change_song(%Song{} = song, attrs \\ %{}) do
     Song.changeset(song, attrs)
   end
 
+  @doc """
+    Subscribes to the given session id's PubSub topic
+  """
+  @spec subscribe(String.t()) :: :ok | {:error, term}
   def subscribe(session_id) do
     Phoenix.PubSub.subscribe(Democrify.PubSub, "session:#{session_id}")
   end
 
+  # ========================================
   # Internal Functions
   # ========================================
 
