@@ -7,6 +7,13 @@ defmodule Democrify.Session.Worker do
 
   # TODO: Have cleanup message or time out, which cleans up this is session if it's inactive for x amount of time...
 
+  defstruct [
+    :player_pid,
+    :session_id,
+    id:      1,
+    session: [],
+  ]
+
   # =================================
   # API Functions
   # =================================
@@ -53,23 +60,21 @@ defmodule Democrify.Session.Worker do
 
   @impl true
   def init(%{session_id: session_id}) do
-    send(self(), :start_player)
-
-    {:ok,
-     %{
-       session: [],
-       id: 1,
-       player_pid: nil,
-       session_id: session_id
-     }}
+    {:ok, %__MODULE__{session_id: session_id}, {:continue, nil}}
   end
 
   @impl true
-  def handle_call(:fetch_all, _from, state) do
-    {:reply, strip_ids(state.session), state}
+  def handle_continue(nil, state = %__MODULE__{}) do
+    Process.flag(:trap_exit, true)
+    {:ok, player_pid} = Democrify.Spotify.Player.start_link(state.session_id)
+    {:noreply, %__MODULE__{state | player_pid: player_pid}}
   end
 
-  def handle_call(:fetch_top_song, _from, state) do
+  @impl true
+  def handle_call(:fetch_all, _from, state = %__MODULE__{}) do
+    {:reply, strip_ids(state.session), state}
+  end
+  def handle_call(:fetch_top_song, _from, state = %__MODULE__{}) do
     return =
       if state.session != [] do
         {_id, song} = hd(state.session)
@@ -80,53 +85,43 @@ defmodule Democrify.Session.Worker do
 
     {:reply, return, state}
   end
-
-  def handle_call({:fetch, id}, _from, state) do
+  def handle_call({:fetch, id}, _from, state = %__MODULE__{}) do
     {^id, song} = List.keyfind(state.session, id, 0)
     {:reply, song, state}
   end
 
-  def handle_call({:add, song}, _from, state) do
-    session = state.session ++ [{state.id, %{song | id: state.id}}]
-    {:reply, strip_ids(session), %{state | session: session, id: state.id + 1}}
+  def handle_call({:add, song}, _from, state = %__MODULE__{}) do
+    session = state.session ++ [{state.id, %Song{song | id: state.id}}]
+    {:reply, strip_ids(session), %__MODULE__{state | session: session, id: state.id + 1}}
   end
-
-  def handle_call({:increment, id}, _from, %{session: session} = state) do
+  def handle_call({:increment, id}, _from, state = %__MODULE__{session: session}) do
     case List.keytake(session, id, 0) do
       {{^id, song}, session} ->
-        song = %{song | votes: song.votes + 1}
+        song = %Song{song | vote_count: song.vote_count + 1}
         session = increment(session, song, [])
-        {:reply, strip_ids(session), %{state | session: session}}
+        {:reply, strip_ids(session), %__MODULE__{state | session: session}}
 
       nil ->
         Logger.error("Received unknown update for Song: #{id}")
         {:reply, strip_ids(session), state}
     end
   end
-
   # TODO: Add test for this guy
-  def handle_call({:update, song}, _from, state) do
+  def handle_call({:update, song}, _from, state = %__MODULE__{}) do
     session = List.keydelete(state.session, song.id, 0)
     session = session ++ [{song.id, song}]
-    {:reply, strip_ids(session), %{state | session: session}}
+    {:reply, strip_ids(session), %__MODULE__{state | session: session}}
   end
-
-  def handle_call({:delete, id}, _from, state) do
+  def handle_call({:delete, id}, _from, state = %__MODULE__{}) do
     session = List.keydelete(state.session, id, 0)
-    {:reply, strip_ids(session), %{state | session: session}}
+    {:reply, strip_ids(session), %__MODULE__{state | session: session}}
   end
 
   @impl true
-  def handle_info(:start_player, state) do
-    Process.flag(:trap_exit, true)
-    {:ok, player_pid} = Democrify.Spotify.Player.start_link(state.session_id)
-    {:noreply, %{state | player_pid: player_pid}}
-  end
-
-  def handle_info({:EXIT, _pid, reason}, state) do
+  def handle_info({:EXIT, _pid, reason}, state = %__MODULE__{}) do
     Logger.error("Player Crashed, Reason: #{inspect(reason)}")
     {:ok, player_pid} = Democrify.Spotify.Player.start_link(state.session_id)
-    {:noreply, %{state | player_pid: player_pid}}
+    {:noreply, %__MODULE__{state | player_pid: player_pid}}
   end
 
   # =================================
@@ -138,7 +133,7 @@ defmodule Democrify.Session.Worker do
   end
 
   defp increment([{id, song} | tail] = list, bumped_song, acc) do
-    case song.votes < bumped_song.votes do
+    case song.vote_count < bumped_song.vote_count do
       false ->
         increment(tail, bumped_song, acc ++ [{id, song}])
 
