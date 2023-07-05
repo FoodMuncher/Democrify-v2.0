@@ -18,7 +18,7 @@ defmodule DemocrifyWeb.SongLive.SongComponent do
         </div>
         <div class="grid grid-cols-3 text-center">
           <a href="#" phx-click="vote" phx-target={@myself}>
-            <p>Votes: <%= @song.votes %></p>
+            <p>Votes: <%= @song.vote_count %></p>
           </a>
           <div>
             <%= live_patch to: ~p"/session/#{@song.id}/edit" do %>

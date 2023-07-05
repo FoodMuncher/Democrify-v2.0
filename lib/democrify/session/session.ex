@@ -46,7 +46,7 @@ defmodule Democrify.Session do
     song = fetch_song(track_id, access_token, song)
 
     Registry.lookup!(session_id)
-    |> Worker.update(%Song{song | votes: 0})
+    |> Worker.update(%Song{song | vote_count: 0})
     |> broadcast(session_id, :songs_changed)
   end
 
@@ -91,13 +91,12 @@ defmodule Democrify.Session do
   defp fetch_song(track_id, access_token, song) do
     track = Spotify.get_track(track_id, access_token)
 
-    %Song{
-      song
-      | name: track.name,
-        artists: Song.artists(track.artists),
-        image_url: hd(track.album.images).url,
-        track_id: track_id,
-        track_uri: track.uri
+    %Song{song |
+      name: track.name,
+      artists: Song.artists(track.artists),
+      image_url: hd(track.album.images).url,
+      track_id: track_id,
+      track_uri: track.uri
     }
   end
 end

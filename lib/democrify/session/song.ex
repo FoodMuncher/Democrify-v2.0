@@ -4,14 +4,17 @@ defmodule Democrify.Session.Song do
 
   @spotify_image_url "https://upload.wikimedia.org/wikipedia/commons/thu…text.svg/1024px-Spotify_logo_without_text.svg.png"
 
+  # TODO: Change this to a struct????
+
   schema "session" do
-    field(:name, :string)
-    field(:username, :string, default: "Joe")
-    field(:votes, :integer, default: 0)
-    field(:track_id, :string)
-    field(:artists, :string)
-    field(:image_url, :string, default: @spotify_image_url)
-    field(:track_uri, :string)
+    field :name,       :string
+    field :track_id,   :string
+    field :artists,    :string
+    field :track_uri,  :string
+    field :username,   :string,  default: "Joe"
+    field :vote_count, :integer, default: 0
+    field :user_votes, :map,     default: Map.new()
+    field :image_url,  :string,  default: @spotify_image_url
 
     timestamps()
   end
