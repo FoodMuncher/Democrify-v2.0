@@ -1,22 +1,44 @@
-<div class="flex flex-row font-mono text-maroon-900">
-  <aside class="pt-6 flex flex-col tracking-wider border-maroon-900 font-semibold w-[15%] min-h-screen border-r bg-champagne-200 items-center">
-    <.link href={~p"/"} class="w-full h-14 mb-7 text-xl text-center border-b">Democrify</.link>
+<div class="flex flex-row">
+  <aside class="flex flex-col font-semibold w-[15%] min-h-screen items-center mt-2">
 
-    <span class="font-normal">
-      Current Session: <%= @session_id %>
-    </span>
+    <%!-- Democrify Logo --%>
 
-    <span class="mt-6">
-      <%= live_patch "Add Song", 
-        to: ~p"/session/new", 
-        class: "border rounded-lg py-2 px-8 font-normal pointer-cursor hover:text-champagne-100 hover:bg-maroon-900" 
-      %>
-    </span>
-    
+    <.link 
+      href={~p"/"} 
+      class="
+        flex items-center justify-center rounded-xl w-full h-20 text-xl text-center 
+        bg-spotify_background_black text-spotify_green"
+    >
+      Democrify
+    </.link>
+
+    <%!-- Side Panel --%>
+
+    <div class="flex flex-col bg-spotify_background_black rounded-t-xl mt-2 mx-2 min-h-screen w-full items-center">
+
+      <%!-- Current Session --%>
+
+      <span class="font-semibold pt-4">
+        Session: <%= @session_id %>
+      </span>
+
+      <%!-- Add Song Button --%>
+      <%!-- TODO: Button transition when hovering --%>
+
+      <span class="mt-6">
+        <%= live_patch "Add Song", 
+          to: ~p"/session/new", 
+          class: "
+            rounded-full py-2 px-8 font-semibold pointer-cursor bg-spotify_white 
+            text-spotify_background_black text-sm hover:text-base" 
+        %>
+      </span>
+    </div>
   </aside>
-  <main class="w-full bg-champagne-100">
+
+  <%!-- Main Body --%>
+
+  <main class="w-full bg-spotify_background_black rounded-t-xl mt-2 mx-2">
     <%= @inner_content %>
   </main>
 </div>
-
-

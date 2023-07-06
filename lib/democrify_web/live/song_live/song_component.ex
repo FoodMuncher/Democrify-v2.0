@@ -10,7 +10,7 @@ defmodule DemocrifyWeb.SongLive.SongComponent do
   @impl true
   def render(assigns) do
     ~H"""
-      <div id={"song-#{@song.id}"} class="flex flex-col p-4 m-2 border rounded-lg">
+      <div id={"song-#{@song.id}"} class="flex flex-col p-4 m-2 rounded-lg bg-spotify_elevated_black">
 
         <%!-- Top Information Row --%>
 
@@ -94,7 +94,7 @@ defmodule DemocrifyWeb.SongLive.SongComponent do
         phx-value-user_id={@user_id}
         phx-value-session_id={@session_id}
       >
-        <p><.icon name={vote_icon(@voted)} class=""/> <%= @vote_count %></p>
+        <p><.icon name={vote_icon(@voted)} class={"#{vote_hover(@voted)}"}/> <%= @vote_count %></p>
       </a>
     """
   end
@@ -105,12 +105,15 @@ defmodule DemocrifyWeb.SongLive.SongComponent do
   defp vote_icon(true),  do: "hero-heart-solid"
   defp vote_icon(false), do: "hero-heart"
 
+  defp vote_hover(true),  do: ""
+  defp vote_hover(false), do: "hover:bg-spotify_subdued"
+
   defp edit_button(assigns) do
     ~H"""
     <div>
       <%= if @users_choice do %>
         <%= live_patch to: ~p"/session/#{@song_id}/edit" do %>
-          <p>edit</p>
+          <p class="text-spotify_subdued hover:text-spotify_white">edit</p>
         <% end %>
       <% end %>
     </div>
@@ -122,7 +125,7 @@ defmodule DemocrifyWeb.SongLive.SongComponent do
     <div>
       <%= if @users_choice do %>
         <%= link to: "#", phx_click: "delete", phx_value_id: @song_id do %>
-          <p>delete</p>
+          <p class="text-spotify_subdued hover:text-spotify_white">delete</p>
         <% end %>
       <% end %>
     </div>
