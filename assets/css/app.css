@@ -17,10 +17,8 @@
 }
 
 .phx-modal-content {
-  background-color: rgb(250,235,215);
   margin: 15% auto;
   padding: 20px;
-  border: 2px solid maroon;
   border-radius: 10px;
   width: 60%;
 }
