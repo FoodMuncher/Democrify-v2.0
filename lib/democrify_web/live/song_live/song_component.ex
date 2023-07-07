@@ -10,7 +10,7 @@ defmodule DemocrifyWeb.SongLive.SongComponent do
   @impl true
   def render(assigns) do
     ~H"""
-      <div id={"song-#{@song.id}"} class="flex flex-col p-4 m-2 rounded-lg bg-spotify_elevated_black">
+      <div id={"song-#{@song.id}"} class="flex flex-col p-4 m-2 rounded-lg bg-spotify_elevated_black w-full">
 
         <%!-- Top Information Row --%>
 
@@ -18,7 +18,7 @@ defmodule DemocrifyWeb.SongLive.SongComponent do
 
           <%!-- Song Image --%>
 
-          <div class="pr-2">
+          <div class="mr-2 flex-none">
             <img src={@song.image_url} alt="Missing Image" class="rounded-full h-20">
           </div>
 
