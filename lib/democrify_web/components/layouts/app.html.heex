@@ -9,7 +9,8 @@
         flex items-center justify-center rounded-xl w-full h-20 text-xl text-center 
         bg-spotify_background_black text-spotify_green"
     >
-      Democrify
+      <.icon name="hero-scale" class="mr-1"/>
+      <p>Democrify</p>
     </.link>
 
     <%!-- Side Panel --%>
@@ -38,7 +39,7 @@
 
   <%!-- Main Body --%>
 
-  <main class="w-full bg-spotify_background_black rounded-t-xl mt-2 mx-2">
+  <main class="w-full bg-spotify_background_black rounded-t-xl mt-2 mx-2 h-screen overflow-auto no-scrollbar pb-2">
     <%= @inner_content %>
   </main>
 </div>
