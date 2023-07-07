@@ -1,31 +1,51 @@
-<main class="h-screen font-mono flex flex-col gap-3 tracking-wider items-center justify-center bg-champagne-100 text-maroon-900">
-  <span class="text-red-800 font-medium tracking-wider text-5xl">
-    <h1>Democrify</h1>
-  </span>
-  <span class="text-l text-red-800 font-normal tracking-wide">
-    <h1>💃 Democracy manifest-ival! 🕺</h1>
-  </span>
+<main class="h-screen flex items-center justify-center bg-spotify_background_black rounded-xl">
+  <div class="flex flex-col items-center gap-3 bg-spotify_elevated_black p-8 rounded-xl">
+    <span class="flex flex-row items-center text-red-800 font-medium text-5xl text-spotify_green">
+      <.icon name="hero-scale" class="mr-3 w-10 h-10"/>
+      <h1> Democrify</h1>
+    </span>
 
-  <div class="text-center">
+    <span class="flex flex-row font-normal">
+      <p class="animate-bounce pr-1">💃</p>
+      
+      <h1> Democracy manifest-ival!</h1>
+
+      <p class="animate-bounce pl-1">🕺</p>
+    </span>
+
+    <%= button "Create a Session", 
+      to: ~p"/login/create", 
+      method: :get, 
+      class: "
+        rounded-full p-3 text-spotify_white font-semibold border-2 border-spotify_white bg-spotify_background_black
+        text-spotify_background_black text-sm hover:text-spotify_background_black hover:bg-spotify_white" 
+    %>
+
+    <%!-- hover:text-spotify_subdued --%>
+
+    <span class="font-normal">or</span>
+
+    <div class="text-center">
       <form action={~p"/join"}>
         <input 
           id="session_id" 
           type="text" 
           name="session_id" 
-          placeholder="Enter Session ID" 
+          placeholder="Join a Session" 
           autocomplete="off"
-          class="focus:outline:none border-maroon-900 focus:border-maroon-900 focus:ring-0"
+          class="
+            bg-spotify_background_black text-spotify_white rounded-full border-0 font-semibold
+            focus:border-spotify_white focus:outline focus:ring-0 focus:outline-spotify_white 
+            placeholder-spotify_subdued focus:placeholder-spotify_white hover:placeholder-spotify_white"
         >
 
-        <br><br>
-
-        <%= button "Create Session", 
-          to: ~p"/login/create", 
-          method: :get, 
-          class: "border rounded-md p-2 hover:bg-maroon-900 hover:text-champagne-100" 
-        %>
-
-        <input class="cursor-pointer border rounded-md p-2 hover:bg-maroon-900 hover:text-champagne-100" type="submit" value="Join Session">
+        <button class="
+          cursor-pointer ml-2 py-2 px-3 text-spotify_subdued bg-spotify_background_black 
+          rounded-full hover:text-spotify_white
+        ">
+          <.icon name="hero-arrow-right" class=""/>
+        </button>
       </form> 
     </div>
+  </div>
 </main>

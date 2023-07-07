@@ -52,10 +52,27 @@ module.exports = {
         '900': '#173d1d',
         '950': '#0c2210',
       }, 
+      'spotify_black': {
+        '100': '#b3b3b3',
+        '200': '#535353',
+        '300': '#212121',
+        '400': '#121212'
+      }, 
     },
     extend: {
+      fontFamily: {
+        'montserrat': ['Montserrat'],
+        'lato': ['Lato'],
+        'garamond': ['Garamond']
+      },
       colors: {
-        brand: "#FD4F00",     
+        brand: "#FD4F00",
+        spotify_green: "#1ed760",
+        spotify_base: "#000000",
+        spotify_background_black: "#121212",
+        spotify_elevated_black: "#242424",
+        spotify_white: "#fff",
+        spotify_subdued: "#727272"
       }
     },
   },

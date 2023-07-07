@@ -8,17 +8,27 @@
       <%= assigns[:page_title] || "Democrify" %>
     </.live_title>
     <link phx-track-static rel="stylesheet" href={~p"/assets/app.css"} />
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@100;200;300;400;500;600;700;800;900&family=Roboto&display=swap" rel="stylesheet">
     <script defer phx-track-static type="text/javascript" src={~p"/assets/app.js"}>
     </script>
   </head>
 
-  <body>
-    <header>
-        <%= if Application.get_env(:democrify, Democrify)[:env] == :dev do %>
-          <a><%= link "LiveDashboard", to: ~p"/dev/dashboard" %></a>
-        <% end %>
-    </header>
+  <body class="bg-spotify_base font-montserrat text-spotify_white overflow-hidden">
+
+    <%!-- Live Dashboard Button --%>
+
+    <%= if Application.get_env(:democrify, Democrify)[:env] == :dev do %>
+      <header>
+        <a class="pl-4"><%= link "Live Dashboard", to: ~p"/dev/dashboard" %></a>
+      </header>
+    <% end %>
+
+    <%!-- Flash Displays --%>
+
     <.flash_group flash={@flash} />
+
+    <%!-- Content --%>
+
     <%= @inner_content %>
   </body>
 </html>

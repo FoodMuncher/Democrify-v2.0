@@ -17,10 +17,8 @@
 }
 
 .phx-modal-content {
-  background-color: rgb(250,235,215);
   margin: 15% auto;
   padding: 20px;
-  border: 2px solid maroon;
   border-radius: 10px;
   width: 60%;
 }
@@ -37,4 +35,15 @@
   color: black;
   text-decoration: none;
   cursor: pointer;
+}
+
+/* Hide scrollbar for Chrome, Safari and Opera */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+/* Hide scrollbar for IE, Edge and Firefox */
+.no-scrollbar {
+  -ms-overflow-style: none;  /* IE and Edge */
+  scrollbar-width: none;  /* Firefox */
 }
