@@ -36,7 +36,7 @@ defmodule Democrify.Session.Registry do
   @doc """
     Returns the Session Worker pid for the session id.
   """
-  @spec lookup!(String.t()) :: {:ok, pid()} | {:error, :notfound}
+  @spec lookup(String.t()) :: {:ok, pid()} | {:error, :notfound}
   def lookup(session_id) do
     case ETS.lookup(__MODULE__, session_id) do
       [{^session_id, pid}] ->
