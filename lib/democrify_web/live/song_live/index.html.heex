@@ -12,8 +12,8 @@
   %>
 <% end %>
 
-<div class="flex flex-col items-center">
-  <div id="song">
+<div class="flex flex-col items-center my-6">
+  <div id="song_list" class="flex flex-col items-center w-4/6">
     <%= for song <- @session do %>
       <%= live_component DemocrifyWeb.SongLive.SongComponent, 
         id:         song.id, 
