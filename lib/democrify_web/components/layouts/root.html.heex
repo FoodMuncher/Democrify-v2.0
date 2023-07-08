@@ -17,7 +17,7 @@
 
     <%!-- Live Dashboard Button --%>
 
-    <%= if Application.get_env(:democrify, Democrify)[:env] == :dev do %>
+    <%= if Application.get_env(:democrify, Democrify)[:env] == :dv do %>
       <header>
         <a class="pl-4"><%= link "Live Dashboard", to: ~p"/dev/dashboard" %></a>
       </header>
