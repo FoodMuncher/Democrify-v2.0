@@ -11,9 +11,14 @@
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@100;200;300;400;500;600;700;800;900&family=Roboto&display=swap" rel="stylesheet">
     <script defer phx-track-static type="text/javascript" src={~p"/assets/app.js"}>
     </script>
+    <script>
+      window.onload = function() {
+        document.documentElement.style.setProperty("--vh", window.innerHeight * 0.01 + 'px');
+      }
+    </script>
   </head>
 
-  <body class="bg-spotify_base font-montserrat text-spotify_white overflow-hidden">
+  <body class="bg-spotify_base font-montserrat text-spotify_white overflow-hidden absolute inset-0">
 
     <%!-- Live Dashboard Button --%>
 
