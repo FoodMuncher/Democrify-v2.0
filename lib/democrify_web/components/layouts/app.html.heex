@@ -6,7 +6,7 @@
     <.link 
       href={~p"/"} 
       class="
-        flex items-center justify-center rounded-xl w-full h-20 text-xl text-center 
+        flex flex-row items-center justify-center rounded-xl w-full h-20 text-sm lg:text-xl text-center 
         bg-spotify_background_black text-spotify_green"
     >
       <.icon name="hero-scale" class="mr-1"/>
@@ -19,8 +19,8 @@
 
       <%!-- Current Session --%>
 
-      <span class="font-semibold pt-4">
-        Session: <%= @session_id %>
+      <span class="flex flex-col lg:flex-row font-semibold pt-4 text-base items-center">
+        <p>Session: </p> <p><%= @session_id %></p>
       </span>
 
       <%!-- Add Song Button --%>
@@ -30,7 +30,7 @@
         <%= live_patch "Add Song", 
           to: ~p"/session/new", 
           class: "
-            rounded-full py-2 px-8 font-semibold pointer-cursor bg-spotify_white 
+            rounded-full py-2 px-3 lg:px-8 font-semibold pointer-cursor bg-spotify_white 
             text-spotify_background_black text-sm hover:text-base" 
         %>
       </span>
