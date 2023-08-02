@@ -5,8 +5,13 @@ defmodule Democrify.Session.Supervisor do
     DynamicSupervisor.start_link(__MODULE__, init_args, name: __MODULE__)
   end
 
-  def start_worker(session_id) do
-    spec = {Democrify.Session.Worker, %{session_id: session_id}}
+  def start_worker(session_id, access_token, refresh_token) do
+    spec = {Democrify.Session.Worker, %{
+      session_id:    session_id,
+      access_token:  access_token,
+      refresh_token: refresh_token
+    }}
+
     DynamicSupervisor.start_child(__MODULE__, spec)
   end
 

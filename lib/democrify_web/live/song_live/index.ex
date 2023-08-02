@@ -22,11 +22,12 @@ defmodule DemocrifyWeb.SongLive.Index do
 
       {:ok,
        socket
-       |> assign(:user_id,      profile.id)
-       |> assign(:username,     profile.display_name)
-       |> assign(:session,      Session.list_session(session_id))
-       |> assign(:session_id,   session_id)
-       |> assign(:access_token, session["access_token"])}
+       |> assign(:user_id,       profile.id)
+       |> assign(:username,      profile.display_name)
+       |> assign(:session,       Session.list_session(session_id))
+       |> assign(:session_id,    session_id)
+       |> assign(:access_token,  session["access_token"])
+       |> assign(:refresh_token, session["refresh_token"])}
     else
       {:ok, redirect(socket, to: ~p"/")}
     end

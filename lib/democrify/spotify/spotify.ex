@@ -31,20 +31,30 @@ defmodule Democrify.Spotify do
   """
   @spec get_authorisation_tokens(String.t(), String.t()) :: Tokens.t()
   def get_authorisation_tokens(code, type) do
-    url = "https://accounts.spotify.com/api/token"
+    request_body = {:form, [
+      code:         code,
+      grant_type:   "authorization_code",
+      redirect_uri: "#{@redirect_uri}/#{type}"
+    ]}
 
-    request_body =
-      {:form,
-       [
-         grant_type: "authorization_code",
-         code: code,
-         redirect_uri: "#{@redirect_uri}/#{type}",
-         client_id: @client_id,
-         client_secret: @client_secret
-       ]}
+    "https://accounts.spotify.com/api/token"
+    |> HTTPoison.post!(request_body, token_header())
+    |> Tokens.constructor()
+  end
 
-    response = HTTPoison.post!(url, request_body)
-    Tokens.constructor(response)
+  @doc """
+    Using the refresh token, gets a new access token.
+  """
+  @spec refresh_token(String.t()) :: Tokens.t()
+  def refresh_token(refresh_token) do
+    request_body = {:form, [
+      grant_type:    "refresh_token",
+      refresh_token: refresh_token
+    ]}
+
+    "https://accounts.spotify.com/api/token"
+    |> HTTPoison.post!(request_body, token_header())
+    |> Tokens.constructor()
   end
 
   def get_user_information(access_token) do
@@ -75,13 +85,30 @@ defmodule Democrify.Spotify do
     Search.constructor(response)
   end
 
-  def get_player_status(access_token) do
-    response =
-      HTTPoison.get!("https://api.spotify.com/v1/me/player",
-        auth_header(access_token)
-      )
+  @doc """
+    Fetches the spotify player status
+  """
+  @spec get_player_status(String.t(), String.t(), boolean()) :: {Status.t() | nil, String.t()}
+  def get_player_status(access_token, refresh_token, refreshed? \\ false) do
+    "https://api.spotify.com/v1/me/player"
+    |> HTTPoison.get!(auth_header(access_token))
+    |> case do
+      %HTTPoison.Response{status_code: code} = response when code in [200, 204] ->
+        {Status.constructor(response), access_token}
 
-    Status.constructor(response)
+      %HTTPoison.Response{status_code: 401} when not refreshed? ->
+        # TODO: Check that once we remove the Session Data ETS, if we kill
+        # the session player after it has refreshed, it is able to get another access token.
+        Logger.info("Refreshing Token!!!!!!!!!!!!!")
+        # TODO: Better handle this returns calls correctly
+        %Tokens{access_token: access_token} = refresh_token(refresh_token)
+
+        get_player_status(access_token, refresh_token)
+
+      response ->
+        Logger.error("Failed to get status of player. Response: #{inspect response}")
+        {nil, access_token}
+    end
   end
 
   def add_song_to_queue(track_uri, access_token) do
@@ -97,6 +124,13 @@ defmodule Democrify.Spotify do
   # ===========================================================
   #  Internal Functions
   # ===========================================================
+
+  defp token_header() do
+    [
+      Authorization:  "Basic #{Base.encode64("#{@client_id}:#{@client_secret}")}",
+      "Content-Type": "application/x-www-form-urlencoded"
+    ]
+  end
 
   defp auth_header(access_token) do
     [Authorization: "Bearer #{access_token}"]

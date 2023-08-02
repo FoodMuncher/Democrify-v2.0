@@ -10,6 +10,8 @@ defmodule Democrify.Session.Worker do
   defstruct [
     :player_pid,
     :session_id,
+    :access_token,
+    :refresh_token,
     id:      1,
     session: [],
   ]
@@ -98,14 +100,19 @@ defmodule Democrify.Session.Worker do
   # =================================
 
   @impl true
-  def init(%{session_id: session_id}) do
-    {:ok, %__MODULE__{session_id: session_id}, {:continue, nil}}
+  def init(init_args) do
+    {:ok, %__MODULE__{
+      session_id:    init_args.session_id,
+      access_token:  init_args.access_token,
+      refresh_token: init_args.refresh_token
+    }, {:continue, nil}}
   end
 
   @impl true
   def handle_continue(nil, state = %__MODULE__{}) do
     Process.flag(:trap_exit, true)
-    {:ok, player_pid} = Democrify.Spotify.Player.start_link(state.session_id)
+    # TODO: Tidy this function call up!!!
+    {:ok, player_pid} = Democrify.Spotify.Player.start_link(state.session_id, state.access_token, state.refresh_token)
     {:noreply, %__MODULE__{state | player_pid: player_pid}}
   end
 
@@ -188,7 +195,7 @@ defmodule Democrify.Session.Worker do
   @impl true
   def handle_info({:EXIT, _pid, reason}, state = %__MODULE__{}) do
     Logger.error("Player Crashed, Reason: #{inspect(reason)}")
-    {:ok, player_pid} = Democrify.Spotify.Player.start_link(state.session_id)
+    {:ok, player_pid} = Democrify.Spotify.Player.start_link(state.session_id, state.access_token, state.refresh_token)
     {:noreply, %__MODULE__{state | player_pid: player_pid}}
   end
 
