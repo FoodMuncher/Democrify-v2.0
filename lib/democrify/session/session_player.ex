@@ -2,16 +2,17 @@ defmodule Democrify.Spotify.Player do
   use GenServer, restart: :temporary
 
   # TODO: This whole module needs a tidy up!
-  # TODO: change from session pid to use regoistry in event the worker dies....
+  # TODO: change from session pid to use registry in event the worker dies....
 
   require Logger
+
   alias Democrify.Spotify
+  alias Democrify.Spotify.{Status, Track}
 
   defstruct [
     :session_id,
     :session_pid,
-    :access_token,
-    :refresh_token,
+    :spotify_data,
     :next_queued_song,
     :current_queued_song
   ]
@@ -23,9 +24,9 @@ defmodule Democrify.Spotify.Player do
   @doc """
     Starts a session player.
   """
-  @spec start_link(String.t(), String.t(), String.t()) :: GenServer.on_start()
-  def start_link(session_id, access_token, refresh_token) do
-    GenServer.start_link(__MODULE__, {session_id, self(), access_token, refresh_token})
+  @spec start_link(String.t(), Spotify.t()) :: GenServer.on_start()
+  def start_link(session_id, spotify_data) do
+    GenServer.start_link(__MODULE__, {session_id, self(), spotify_data})
   end
 
   # ===========================================================
@@ -33,54 +34,72 @@ defmodule Democrify.Spotify.Player do
   # ===========================================================
 
   @impl true
-  def init({session_id, session_pid, access_token, refresh_token}) do
-    Process.send_after(self(), :check_status, 1000)
+  def init({session_id, session_pid, spotify_data}) do
+    Spotify.subscribe(spotify_data)
+    poll_status()
 
     {:ok, %__MODULE__{
-      session_id:    session_id,
-      session_pid:   session_pid,
-      access_token:  access_token,
-      refresh_token: refresh_token
+      session_id:   session_id,
+      session_pid:  session_pid,
+      spotify_data: spotify_data
     }}
   end
 
   @impl true
   def handle_info(:check_status, state = %__MODULE__{}) do
-    {status, access_token} = Spotify.get_player_status(state.access_token, state.refresh_token)
+    state = case Spotify.get_player_status(state.spotify_data) do
+      {:ok, status = %Status{item: track = %Track{}}} ->
+        # Logger.info("Status: #{inspect status}")
 
-    Logger.info("Status: #{inspect status}")
+        # new song is
+        state =
+          if state.next_queued_song && track.id == state.next_queued_song.track_id do
+            %__MODULE__{state | current_queued_song: state.next_queued_song, next_queued_song: nil}
+          else
+            state
+          end
 
-    # new song is
-    state =
-      if state.next_queued_song != nil && status.item.id == state.next_queued_song.track_id do
-        %__MODULE__{state | current_queued_song: state.next_queued_song, next_queued_song: nil}
-      else
+        # Logger.info("Next Song? = #{status != nil && status.item.duration_ms - status.progress_ms < 2500}")
+
+        # TODO: check that the current song is whats expected...
+        if track.duration_ms - status.progress_ms < 2500 do
+          queue_next_song(state, state.spotify_data)
+        else
+          state
+        end
+
+      {:ok, nil} ->
         state
-      end
 
-    # TODO: check that the current song is whats expected...
-    state =
-      if status != nil && status.item.duration_ms - status.progress_ms < 2500 do
-        queue_next_song(state, access_token)
-      else
+      {:error, reason} ->
+        Logger.error("Failed to check status as: #{reason}.")
+
         state
-      end
+    end
 
-    Process.send_after(self(), :check_status, 1000)
+    poll_status()
 
-    {:noreply, %__MODULE__{state | access_token: access_token}}
+    {:noreply, state}
+  end
+  def handle_info({:updated_spotify_data, spotify_data}, state = %__MODULE__{}) do
+    Logger.info("Session Player #{state.session_id} received new spotify_data")
+    {:noreply, %__MODULE__{state | spotify_data: spotify_data}}
   end
 
   # ===========================================================
   #  Internal Functions
   # ===========================================================
 
-  defp queue_next_song(state = %__MODULE__{next_queued_song: nil}, _access_token), do: state
-  defp queue_next_song(state = %__MODULE__{}, access_token) do
+  defp poll_status(), do: Process.send_after(self(), :check_status, 1000)
+
+  defp queue_next_song(state = %__MODULE__{next_queued_song: nil}, %Spotify{}), do: state
+  defp queue_next_song(state = %__MODULE__{}, spotify_data = %Spotify{}) do
     song = Democrify.Session.Worker.fetch_top_track(state.session_pid)
 
-    unless song == nil do
-      Spotify.add_song_to_queue(song.track_uri, access_token)
+    Logger.error("Song: #{inspect song}")
+
+    if song do
+      Spotify.add_song_to_queue(song.track_uri, spotify_data)
 
       Democrify.Session.delete_song(song, state.session_id)
 
