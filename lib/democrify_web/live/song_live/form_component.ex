@@ -3,6 +3,7 @@ defmodule DemocrifyWeb.SongLive.FormComponent do
 
   alias Democrify.{Session, Spotify}
   alias Democrify.Session.Song
+  alias Democrify.Spotify.{Search, Tracks, Track}
 
   # =================================
   # Live View Callbacks
@@ -15,12 +16,9 @@ defmodule DemocrifyWeb.SongLive.FormComponent do
 
   @impl true
   def update(%{song: song} = assigns, socket) do
-    changeset = Session.change_song(song)
-
-    {:ok,
-     socket
+    {:ok, socket
      |> assign(assigns)
-     |> assign(:changeset, changeset)}
+     |> assign(:changeset, Session.change_song(song))}
   end
 
   @impl true
@@ -29,11 +27,12 @@ defmodule DemocrifyWeb.SongLive.FormComponent do
 
     suggested_songs =
       if query && query != "" do
-        search = Spotify.search_tracks(query, socket.assigns.access_token)
-        tracks = search.tracks.items
+        case Spotify.search_tracks(query, socket.assigns.spotify_data) do
+          {:ok, %Search{tracks: %Tracks{items: tracks}}} ->
+            convert_tracks(tracks)
 
-        if tracks != [] do
-          convert_tracks(tracks)
+          {:error, _reason} ->
+            []
         end
       end
 
@@ -42,12 +41,9 @@ defmodule DemocrifyWeb.SongLive.FormComponent do
       |> Session.change_song(song_params)
       |> Map.put(:action, :validate)
 
-    socket =
-      socket
+    {:noreply, socket
       |> assign(:changeset, changeset)
-      |> assign(:suggested_songs, suggested_songs)
-
-    {:noreply, assign(socket, :changeset, changeset)}
+      |> assign(:suggested_songs, suggested_songs)}
   end
   def handle_event("save", %{"song" => song_params}, socket) do
     save_song(socket, socket.assigns.action, song_params)
@@ -61,7 +57,7 @@ defmodule DemocrifyWeb.SongLive.FormComponent do
     Session.create_song(
       song_params["track_id"],
       socket.assigns.session_id,
-      socket.assigns.access_token,
+      socket.assigns.spotify_data,
       socket.assigns.username,
       socket.assigns.user_id
     )
@@ -75,7 +71,7 @@ defmodule DemocrifyWeb.SongLive.FormComponent do
     Session.update_song(
       song_params["track_id"],
       socket.assigns.session_id,
-      socket.assigns.access_token,
+      socket.assigns.spotify_data,
       socket.assigns.song
     )
 
@@ -88,7 +84,7 @@ defmodule DemocrifyWeb.SongLive.FormComponent do
   defp convert_tracks([]) do
     []
   end
-  defp convert_tracks([track | tracks]) do
+  defp convert_tracks([track = %Track{} | tracks]) do
     [{"#{track.name} - #{Song.artists(track.artists)}", track.id} | convert_tracks(tracks)]
   end
 end

@@ -3,6 +3,7 @@ defmodule DemocrifyWeb.SongLive.Index do
   use DemocrifyWeb, :live_view
 
   alias Democrify.Session
+  alias Democrify.Spotify
   alias Democrify.Session.Song
   alias Democrify.Spotify.Profile
 
@@ -14,20 +15,24 @@ defmodule DemocrifyWeb.SongLive.Index do
   def mount(_params, session, socket) do
     session_id = session["session_id"]
 
-    if session_id != nil && Session.exists?(session_id) do
-      if connected?(socket), do: Session.subscribe(session_id)
+    if Session.exists?(session_id) do
+      spotify_data = session["spotify_data"]
+
+      if connected?(socket) do
+        Session.subscribe(session_id)
+        Spotify.subscribe(spotify_data)
+      end
 
       # TODO: Safer handling here....
       profile = %Profile{} = session["user"]
 
       {:ok,
        socket
-       |> assign(:user_id,       profile.id)
-       |> assign(:username,      profile.display_name)
-       |> assign(:session,       Session.list_session(session_id))
-       |> assign(:session_id,    session_id)
-       |> assign(:access_token,  session["access_token"])
-       |> assign(:refresh_token, session["refresh_token"])}
+       |> assign(:user_id,      profile.id)
+       |> assign(:username,     profile.display_name)
+       |> assign(:session,      Session.list_session(session_id))
+       |> assign(:session_id,   session_id)
+       |> assign(:spotify_data, spotify_data)}
     else
       {:ok, redirect(socket, to: ~p"/")}
     end
@@ -56,6 +61,10 @@ defmodule DemocrifyWeb.SongLive.Index do
   @impl true
   def handle_info({:songs_changed, songs}, socket) do
     {:noreply, assign(socket, :session, songs)}
+  end
+  def handle_info({:updated_spotify_data, spotify_data}, socket) do
+    Logger.info("Index Live View #{socket.assigns.session_id} received new spotify_data")
+    {:noreply, assign(socket, :spotify_data, spotify_data)}
   end
 
   # =================================

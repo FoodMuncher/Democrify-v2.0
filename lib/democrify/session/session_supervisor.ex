@@ -5,11 +5,10 @@ defmodule Democrify.Session.Supervisor do
     DynamicSupervisor.start_link(__MODULE__, init_args, name: __MODULE__)
   end
 
-  def start_worker(session_id, access_token, refresh_token) do
+  def start_worker(session_id, spotify_data) do
     spec = {Democrify.Session.Worker, %{
-      session_id:    session_id,
-      access_token:  access_token,
-      refresh_token: refresh_token
+      session_id:   session_id,
+      spotify_data: spotify_data
     }}
 
     DynamicSupervisor.start_child(__MODULE__, spec)
