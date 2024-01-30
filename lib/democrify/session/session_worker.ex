@@ -3,13 +3,16 @@ defmodule Democrify.Session.Worker do
 
   require Logger
 
+  alias Democrify.Spotify
   alias Democrify.Session.Song
+  alias Democrify.Spotify.Player, as: SpotifyPlayer
 
   # TODO: Have cleanup message or time out, which cleans up this is session if it's inactive for x amount of time...
 
   defstruct [
     :player_pid,
     :session_id,
+    :spotify_data,
     id:      1,
     session: [],
   ]
@@ -98,14 +101,20 @@ defmodule Democrify.Session.Worker do
   # =================================
 
   @impl true
-  def init(%{session_id: session_id}) do
-    {:ok, %__MODULE__{session_id: session_id}, {:continue, nil}}
+  def init(init_args) do
+    Spotify.subscribe(init_args.spotify_data)
+
+    {:ok, %__MODULE__{
+      session_id:   init_args.session_id,
+      spotify_data: init_args.spotify_data
+    }, {:continue, nil}}
   end
 
   @impl true
   def handle_continue(nil, state = %__MODULE__{}) do
     Process.flag(:trap_exit, true)
-    {:ok, player_pid} = Democrify.Spotify.Player.start_link(state.session_id)
+    # TODO: Tidy this function call up!!!
+    {:ok, player_pid} = SpotifyPlayer.start_link(state.session_id, state.spotify_data)
     {:noreply, %__MODULE__{state | player_pid: player_pid}}
   end
 
@@ -186,9 +195,13 @@ defmodule Democrify.Session.Worker do
   end
 
   @impl true
+  def handle_info({:updated_spotify_data, spotify_data}, state = %__MODULE__{}) do
+    Logger.info("Session Worker #{state.session_id} received new spotify_data")
+    {:noreply, %__MODULE__{state | spotify_data: spotify_data}}
+  end
   def handle_info({:EXIT, _pid, reason}, state = %__MODULE__{}) do
-    Logger.error("Player Crashed, Reason: #{inspect(reason)}")
-    {:ok, player_pid} = Democrify.Spotify.Player.start_link(state.session_id)
+    Logger.error("Player Crashed, Reason: #{inspect reason}")
+    {:ok, player_pid} = SpotifyPlayer.start_link(state.session_id, state.spotify_data)
     {:noreply, %__MODULE__{state | player_pid: player_pid}}
   end
 

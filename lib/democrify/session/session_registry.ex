@@ -2,7 +2,9 @@ defmodule Democrify.Session.Registry do
   use GenServer
 
   alias :ets, as: ETS
-  alias Democrify.Session.Data, as: SessionData
+
+  alias Democrify.Spotify
+  alias Democrify.Session.Supervisor, as: SessionSupervisor
 
   # ===========================================================
   # API functions
@@ -19,9 +21,9 @@ defmodule Democrify.Session.Registry do
   @doc """
     Creates a new session and adds it to the registry
   """
-  @spec create(String.t(), String.t()) :: pid()
-  def create(session_id, access_token) do
-    GenServer.call(__MODULE__, {:create, session_id, access_token})
+  @spec create(String.t(), Spotify.t()) :: pid()
+  def create(session_id, spotify_data) do
+    GenServer.call(__MODULE__, {:create, session_id, spotify_data})
   end
 
   @doc """
@@ -66,16 +68,15 @@ defmodule Democrify.Session.Registry do
   end
 
   @impl true
-  def handle_call({:create, session_id, access_token}, _from, state) do
+  def handle_call({:create, session_id, spotify_data}, _from, state) do
     worker_pid =
       case ETS.lookup(__MODULE__, session_id) do
         [{^session_id, pid}] ->
           pid
 
         [] ->
-          {:ok, pid} = Democrify.Session.Supervisor.start_worker(session_id)
+          {:ok, pid} = SessionSupervisor.start_worker(session_id, spotify_data)
           ETS.insert_new(__MODULE__, {session_id, pid})
-          SessionData.add(session_id, access_token)
           pid
       end
 

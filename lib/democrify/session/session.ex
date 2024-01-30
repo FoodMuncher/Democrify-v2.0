@@ -17,17 +17,18 @@ defmodule Democrify.Session do
   @doc """
     Creates a new Session Worker and returns the session_id.
   """
-  @spec create_session(String.t()) :: String.t()
-  def create_session(access_token) do
+  @spec create_session(Spotify.t()) :: String.t()
+  def create_session(spotify_data) do
     session_id = generate_id()
-    Registry.create(session_id, access_token)
+    Registry.create(session_id, spotify_data)
     session_id
   end
 
   @doc """
     Checks if the session_id corresponds to a live SessionWorker.
   """
-  @spec exists?(String.t()) :: boolean()
+  @spec exists?(String.t() | nil) :: boolean()
+  def exists?(nil), do: false
   def exists?(session_id) do
     Registry.lookup(session_id) != {:error, :notfound}
   end
@@ -77,10 +78,12 @@ defmodule Democrify.Session do
     Fetches the song information from the Spotify API and adds the song to the session.
     Returns the updated list of songs for this session.
   """
-  @spec create_song(String.t(), String.t(), String.t(), String.t(), String.t()) :: [Song.t()]
-  def create_song(track_id, session_id, access_token, username, user_id) do
+  @spec create_song(String.t(), String.t(), Spotify.t(), String.t(), String.t()) :: [Song.t()]
+  def create_song(track_id, session_id, spotify_data, username, user_id) do
+    song = fetch_song(track_id, spotify_data, username, user_id)
+
     Registry.lookup!(session_id)
-    |> Worker.add(fetch_song(track_id, access_token, username, user_id))
+    |> Worker.add(song)
     |> broadcast(session_id, :songs_changed)
   end
 
@@ -88,9 +91,9 @@ defmodule Democrify.Session do
     Removes the given song from the session and adds the new song.
     Returns the updated list of songs for this session.
   """
-  @spec update_song(String.t(), String.t(), String.t(), Song.t()) :: [Song.t()]
-  def update_song(track_id, session_id, access_token, %Song{} = song) do
-    song = fetch_song(track_id, access_token, song)
+  @spec update_song(String.t(), String.t(), Spotify.t(), Song.t()) :: [Song.t()]
+  def update_song(track_id, session_id, spotify_data, %Song{} = song) do
+    song = fetch_song(track_id, spotify_data, song)
 
     Registry.lookup!(session_id)
     |> Worker.update(%Song{song | vote_count: 0})
@@ -145,15 +148,17 @@ defmodule Democrify.Session do
     |> Integer.to_string(36)
   end
 
-  defp fetch_song(track_id, access_token, username, user_id) do
-    fetch_song(track_id, access_token, %Song{
+  defp fetch_song(track_id, spotify_data, username, user_id) do
+    fetch_song(track_id, spotify_data, %Song{
       user_id:  user_id,
       username: username
     })
   end
 
-  defp fetch_song(track_id, access_token, song) do
-    track = %Track{} = Spotify.get_track(track_id, access_token)
+  defp fetch_song(track_id, spotify_data, song) do
+    # TODO: better handling if we can't get the song.
+    # TODO: Is this needed at all? We can send over the tracks from the search call...
+    {:ok, track = %Track{}} = Spotify.get_track(track_id, spotify_data)
 
     %Song{song |
       name:      track.name,
