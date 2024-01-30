@@ -3,18 +3,23 @@ defmodule Democrify.Spotify.Player do
 
   # TODO: This whole module needs a tidy up!
   # TODO: change from session pid to use registry in event the worker dies....
+  # TODO: if next and current aren't the playing song, then do something..
+  # TODO: Handle when the current song ends and there's nothing left in the queue.
 
   require Logger
 
   alias Democrify.Spotify
   alias Democrify.Spotify.{Status, Track}
+  alias Democrify.Session
+  alias Democrify.Session.Song
+  alias Democrify.Session.Worker, as: SessionWorker
 
   defstruct [
     :session_id,
     :session_pid,
     :spotify_data,
-    :next_queued_song,
-    :current_queued_song
+    :queued_song,
+    :current_song
   ]
 
   # ===========================================================
@@ -48,29 +53,25 @@ defmodule Democrify.Spotify.Player do
   @impl true
   def handle_info(:check_status, state = %__MODULE__{}) do
     state = case Spotify.get_player_status(state.spotify_data) do
-      {:ok, status = %Status{item: track = %Track{}}} ->
-        # Logger.info("Status: #{inspect status}")
-
-        # new song is
-        state =
-          if state.next_queued_song && track.id == state.next_queued_song.track_id do
-            %__MODULE__{state | current_queued_song: state.next_queued_song, next_queued_song: nil}
-          else
-            state
-          end
-
-        # Logger.info("Next Song? = #{status != nil && status.item.duration_ms - status.progress_ms < 2500}")
+      {:ok, status = %Status{item: track = %Track{}}} when not is_nil(state.current_song) ->
+        state = handle_song_statuses(track, state)
 
         # TODO: check that the current song is whats expected...
         if track.duration_ms - status.progress_ms < 2500 do
-          queue_next_song(state, state.spotify_data)
+          queue_next_song(state)
         else
           state
         end
 
+      # We have a spotify session, but democrify hasn't played any songs yet.
+      {:ok, %Status{}} ->
+        play_next_song(state)
+
+      # No spotify session currently.
       {:ok, nil} ->
         state
 
+      # Failed to get spotify session.
       {:error, reason} ->
         Logger.error("Failed to check status as: #{reason}.")
 
@@ -92,20 +93,49 @@ defmodule Democrify.Spotify.Player do
 
   defp poll_status(), do: Process.send_after(self(), :check_status, 1000)
 
-  defp queue_next_song(state = %__MODULE__{next_queued_song: nil}, %Spotify{}), do: state
-  defp queue_next_song(state = %__MODULE__{}, spotify_data = %Spotify{}) do
-    song = Democrify.Session.Worker.fetch_top_track(state.session_pid)
-
-    Logger.error("Song: #{inspect song}")
+  defp play_next_song(state = %__MODULE__{}) do
+    song = SessionWorker.fetch_top_track(state.session_pid)
 
     if song do
-      Spotify.add_song_to_queue(song.track_uri, spotify_data)
+      case Spotify.play_song(song, state.spotify_data) do
+        :ok ->
 
-      Democrify.Session.delete_song(song, state.session_id)
+          Session.delete_song(song, state.session_id)
 
-      %{state | next_queued_song: song}
+          %__MODULE__{state |
+            current_song: song,
+            queued_song:  nil
+          }
+
+        :error ->
+          state
+      end
     else
       state
     end
   end
+
+  # This is for when we queue a track, we want to know when it has started playing.
+  defp handle_song_statuses(%Track{id: same_id}, state = %__MODULE__{queued_song: %Song{track_id: same_id}}) do
+    %__MODULE__{state |
+      current_song: state.queued_song,
+      queued_song:  nil
+    }
+  end
+  defp handle_song_statuses(%Track{}, state = %__MODULE__{}), do: state
+
+  defp queue_next_song(state = %__MODULE__{queued_song: nil, spotify_data: spotify_data = %Spotify{}}) do
+    song = SessionWorker.fetch_top_track(state.session_pid)
+
+    if song do
+      Spotify.add_song_to_queue(song, spotify_data)
+
+      Session.delete_song(song, state.session_id)
+
+      %{state | queued_song: song}
+    else
+      state
+    end
+  end
+  defp queue_next_song(state = %__MODULE__{}), do: state
 end
