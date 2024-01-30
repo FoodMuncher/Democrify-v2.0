@@ -3,6 +3,7 @@ defmodule Democrify.Spotify do
   Module for handling any Spotify API interactions
   """
 
+  alias Democrify.Session.Song
   alias Democrify.Spotify.{Tokens, Track, Search, Status, Profile}
 
   require Logger
@@ -149,11 +150,30 @@ defmodule Democrify.Spotify do
   end
 
   @doc """
-    Adds the given song as next in the spotify queue.
-    TODO: Improve spec
+    Plays the given song on spotify.
   """
-  @spec add_song_to_queue(String.t(), t()) :: any()
-  def add_song_to_queue(track_uri, spotify_data) do
+  @spec play_song(Song.t(), t()) :: :ok | :error
+  def play_song(%Song{track_uri: track_uri}, spotify_data) do
+    case Poison.encode(%{uris: [track_uri]}) do
+      {:ok, body} ->
+        "https://api.spotify.com/v1/me/player/play"
+        |> HTTPoison.put(body, auth_header(spotify_data))
+        |> case do
+          {:ok, %HTTPoison.Response{status_code: code}} when code in [200, 204] ->
+            :ok
+
+          response ->
+            Logger.error("Failed to play track #{track_uri}. Response: #{inspect response}")
+            :error
+        end
+    end
+  end
+
+  @doc """
+    Adds the given song as next in the spotify queue.
+  """
+  @spec add_song_to_queue(Song.t(), t()) :: :ok | :error
+  def add_song_to_queue(%Song{track_uri: track_uri}, spotify_data) do
     Logger.debug("Added Track: #{track_uri} to the Queue")
     "https://api.spotify.com/v1/me/player/queue?uri=#{track_uri}"
     |> URI.encode()
