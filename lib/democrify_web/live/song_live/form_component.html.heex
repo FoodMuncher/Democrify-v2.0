@@ -6,7 +6,7 @@
     for={@changeset}
     id="song-form"
     phx-target={@myself}
-    phx-change="validate"
+    phx-change="load_suggestions"
     phx-submit="save">
     <div class="flex flex-col items-center">
       <%= text_input f, :query, 

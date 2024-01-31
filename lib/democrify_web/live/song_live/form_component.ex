@@ -22,17 +22,19 @@ defmodule DemocrifyWeb.SongLive.FormComponent do
   end
 
   @impl true
-  def handle_event("validate", %{"song" => song_params}, socket) do
-    query = song_params["query"]
+  def handle_event("load_suggestions", %{"song" => song_params}, socket) do
+    query = song_params
+    |> Map.get("query", "")
+    |> String.trim()
 
     suggested_songs =
-      if query && query != "" do
+      unless query == "" do
         case Spotify.search_tracks(query, socket.assigns.spotify_data) do
-          {:ok, %Search{tracks: %Tracks{items: tracks}}} ->
+          {:ok, %Search{tracks: %Tracks{items: tracks}}} when tracks != [] ->
             convert_tracks(tracks)
 
-          {:error, _reason} ->
-            []
+          _response ->
+            nil
         end
       end
 
