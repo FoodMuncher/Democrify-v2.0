@@ -5,6 +5,7 @@ defmodule Democrify.Spotify.Player do
   # TODO: change from session pid to use registry in event the worker dies....
   # TODO: if next and current aren't the playing song, then do something..
   # TODO: Handle when the current song ends and there's nothing left in the queue.
+  # TODO: Spotify or Session in the name!!!
 
   require Logger
 
