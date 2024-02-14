@@ -16,18 +16,24 @@ defmodule DemocrifyWeb.SongLive.Component.Form do
           id="song-form"
           phx-change="add_song_query"
           phx-submit="save">
-          <div class="flex flex-col items-center">
+          <div class="flex flex-col items-center gap-y-3">
             <%= text_input f, :query,
+              class: "bg-spotify_elevated_black text-spotify_white rounded-full border-0 font-semibold
+              focus:border-spotify_white focus:outline focus:ring-0 focus:outline-spotify_white
+              placeholder-spotify_subdued focus:placeholder-spotify_white hover:placeholder-spotify_white",
               placeholder: "Enter Song Name",
-              autocomplete: "off",
-              class: "text-spotify_background_black"
+              autocomplete: "off"
             %>
 
             <%= if @suggested_songs do %>
               <%= unless @suggested_songs == :loading do %>
 
                 <%!-- Suggested Songs Select --%>
-                <%= select f, :track_id, @suggested_songs, class: "max-w-min text-spotify_background_black"%>
+                <%= select f, :track_id, @suggested_songs,
+                  class: "bg-spotify_elevated_black text-spotify_white rounded-full border-0 font-semibold
+                  focus:border-spotify_white focus:outline focus:ring-0 focus:outline-spotify_white
+                  placeholder-spotify_subdued focus:placeholder-spotify_white hover:placeholder-spotify_white"
+                %>
 
               <% else %>
 
@@ -42,7 +48,7 @@ defmodule DemocrifyWeb.SongLive.Component.Form do
 
             <%= submit "Save",
               phx_disable_with: "Saving...",
-              class: "mt-3 py-3 px-8 rounded-full text-spotify_white font-semibold border-2 border-spotify_white
+              class: "py-2 px-6 rounded-full text-spotify_white font-semibold border-2 border-spotify_white
               bg-spotify_background_black text-spotify_background_black text-sm
               hover:text-spotify_background_black hover:bg-spotify_white"
             %>
