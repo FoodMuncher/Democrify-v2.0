@@ -5,7 +5,6 @@
     :let={f}
     for={@changeset}
     id="song-form"
-    phx-target={@myself}
     phx-change="load_suggestions"
     phx-submit="save">
     <div class="flex flex-col items-center">
@@ -16,7 +15,17 @@
       %>
 
       <%= if @suggested_songs do %>
-        <%= select f, :track_id, @suggested_songs, class: "max-w-min text-spotify_background_black"%>
+        <%= unless @suggested_songs == :loading do %>
+          
+          <%!-- Suggested Songs Select --%>
+          <%= select f, :track_id, @suggested_songs, class: "max-w-min text-spotify_background_black"%>
+
+        <% else %>
+          
+          <%!-- Loading SVG --%>
+          <.loading_svg />
+          
+        <% end %>
       <% end %>
       
       <%!-- TODO: Fix this... --%>

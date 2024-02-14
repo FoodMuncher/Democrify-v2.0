@@ -1,14 +1,15 @@
 <%= if @live_action in [:new, :edit] do %>
   <%= live_modal DemocrifyWeb.SongLive.FormComponent,
-    id:           @song.id || :new,
-    song:         @song,
-    title:        @page_title,
-    action:       @live_action,
-    user_id:      @user_id,
-    username:     @username,
-    session_id:   @session_id,
-    spotify_data: @spotify_data,
-    return_to:    ~p"/session"
+    id:              @song.id || :new,
+    song:            @song,
+    title:           @page_title,
+    action:          @live_action,
+    user_id:         @user_id,
+    username:        @username,
+    session_id:      @session_id,
+    spotify_data:    @spotify_data,
+    suggested_songs: @suggested_songs,
+    return_to:       ~p"/session"
   %>
 <% end %>
 
