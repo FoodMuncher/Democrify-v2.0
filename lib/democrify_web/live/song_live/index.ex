@@ -16,9 +16,10 @@ defmodule DemocrifyWeb.SongLive.Index do
   def mount(_params, session, socket) do
     session_id = session["session_id"]
 
-    if Session.exists?(session_id) do
-      spotify_data = session["spotify_data"]
-
+    with true                      <- Session.exists?(session_id),
+         spotify_data = %Spotify{} <- session["spotify_data"],
+         profile = %Profile{}      <- session["user"]
+    do
       socket = if connected?(socket) do
         Session.subscribe(session_id)
         Spotify.subscribe(spotify_data)
@@ -27,9 +28,6 @@ defmodule DemocrifyWeb.SongLive.Index do
         assign(socket, :session, [])
       end
 
-      # TODO: Safer handling here....
-      profile = %Profile{} = session["user"]
-
       {:ok,
        socket
        |> assign(:user_id,        profile.id)
@@ -37,7 +35,8 @@ defmodule DemocrifyWeb.SongLive.Index do
        |> assign(:session_id,     session_id)
        |> assign(:spotify_data,   spotify_data)}
     else
-      {:ok, redirect(socket, to: ~p"/")}
+      _ ->
+        {:ok, redirect(socket, to: ~p"/")}
     end
   end
 
