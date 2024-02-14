@@ -10,11 +10,9 @@ defmodule DemocrifyWeb.SongLive.FormComponent do
 
   @impl true
   def update(%{song: song} = assigns, socket) do
-    Logger.error("Change: #{inspect Session.change_song(song)}")
-
     {:ok, socket
-     |> assign(assigns)
-     |> assign(:changeset, Session.change_song(song))}
+    |> assign(assigns)
+    |> assign(:changeset, Session.change_song(song))}
   end
 
   # =================================
