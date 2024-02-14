@@ -3,9 +3,9 @@
 
   <.form
     :let={f}
-    for={@changeset}
+    for={%{}}
     id="song-form"
-    phx-change="load_suggestions"
+    phx-change="add_song_query"
     phx-submit="save">
     <div class="flex flex-col items-center">
       <%= text_input f, :query, 
