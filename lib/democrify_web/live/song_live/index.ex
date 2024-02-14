@@ -44,7 +44,7 @@ defmodule DemocrifyWeb.SongLive.Index do
   def handle_params(params, _url, socket) do
     {:noreply, socket
       |> assign(:session_id,      socket.assigns.session_id)
-      |> assign(:action,           socket.assigns.live_action)
+      |> assign(:action,          socket.assigns.live_action)
       |> assign(:query,           "")
       |> assign(:suggested_songs, nil)
       |> apply_action(socket.assigns.live_action, params)}
