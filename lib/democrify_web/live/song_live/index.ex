@@ -61,15 +61,17 @@ defmodule DemocrifyWeb.SongLive.Index do
 
     {:noreply, assign(socket, :session, songs)}
   end
+  def handle_event("add_song_query", %{"track_id" => _track_id}, socket) do
+    {:noreply, socket}
+  end
   def handle_event("add_song_query", %{"query" => query}, socket) do
     query = String.trim(query)
 
     Process.send_after(self(), {:check_query, query}, @check_query_wait)
 
     {:noreply, socket
-    |> assign(:query,           query)
-    |> assign(:suggested_songs, loading?(query))}
-
+      |> assign(:query,           query)
+      |> assign(:suggested_songs, loading?(query))}
   end
   def handle_event("save", %{"track_id" => track_id}, socket) do
     {:noreply, save_song(socket, socket.assigns.action, track_id)}
