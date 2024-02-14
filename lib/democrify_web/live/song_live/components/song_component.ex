@@ -1,4 +1,4 @@
-defmodule DemocrifyWeb.SongLive.SongComponent do
+defmodule DemocrifyWeb.SongLive.Component.Song do
   use DemocrifyWeb, :live_component
 
   alias Democrify.Session
