@@ -5,7 +5,6 @@ defmodule DemocrifyWeb.PageController do
   alias Democrify.Spotify
   alias Democrify.Session
   alias Democrify.Spotify.{Tokens, Profile}
-  alias Democrify.Session.Registry
 
   # ===========================================================
   # Home Page Handlers
