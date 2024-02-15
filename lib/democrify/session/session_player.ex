@@ -4,8 +4,6 @@ defmodule Democrify.Session.Player do
   # TODO: This whole module needs a tidy up!
   # TODO: change from session pid to use registry in event the worker dies....
   # TODO: if next and current aren't the playing song, then do something..
-  # TODO: Handle when the current song ends and there's nothing left in the queue.
-  # TODO: Spotify or Session in the name!!!
 
   require Logger
 
@@ -55,18 +53,21 @@ defmodule Democrify.Session.Player do
   def handle_info(:check_status, state = %__MODULE__{}) do
     state = case Spotify.get_player_status(state.spotify_data) do
       {:ok, status = %Status{item: track = %Track{}}} when not is_nil(state.current_song) ->
-        state = handle_song_statuses(track, state)
+        if is_current_song(status, state) and not reached_end_of_queue?(status) do
+          state = handle_song_statuses(track, state)
 
-        # TODO: check that the current song is whats expected...
-        if track.duration_ms - status.progress_ms < 2500 do
-          queue_next_song(state)
+          # TODO: check that the current song is whats expected...
+          if track.duration_ms - status.progress_ms < 2500 do
+            queue_next_song(state)
+          else
+            state
+          end
         else
-          state
+          # Either:
+          # * We have a spotify session, but democrify hasn't played any songs yet.
+          # * There were no more songs in the queue and the current song finished.
+          play_next_song(state)
         end
-
-      # We have a spotify session, but democrify hasn't played any songs yet.
-      {:ok, %Status{}} ->
-        play_next_song(state)
 
       # No spotify session currently.
       {:ok, nil} ->
@@ -75,7 +76,6 @@ defmodule Democrify.Session.Player do
       # Failed to get spotify session.
       {:error, reason} ->
         Logger.error("Failed to check status as: #{reason}.")
-
         state
     end
 
@@ -139,4 +139,14 @@ defmodule Democrify.Session.Player do
     end
   end
   defp queue_next_song(state = %__MODULE__{}), do: state
+
+  defp is_current_song(%Status{item: %Track{id: id}}, %__MODULE__{current_song: %Song{track_id: id}}) do
+    true
+  end
+  defp is_current_song(%Status{}, %__MODULE__{}) do
+    false
+  end
+
+  defp reached_end_of_queue?(%Status{progress_ms: 0, is_playing: false}), do: true
+  defp reached_end_of_queue?(%Status{item: %Track{}}),                    do: false
 end
