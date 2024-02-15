@@ -67,7 +67,7 @@ module.exports = {
       },
       colors: {
         brand: "#FD4F00",
-        spotify_green: "#1ed760",
+        spotify_green: "#1DB954",
         spotify_base: "#000000",
         spotify_background_black: "#121212",
         spotify_elevated_black: "#242424",
