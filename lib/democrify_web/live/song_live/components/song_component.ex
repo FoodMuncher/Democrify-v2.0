@@ -35,7 +35,7 @@ defmodule DemocrifyWeb.SongLive.Component.Song do
           </div>
 
           <div class="ml-auto">
-            <img src="images/Spotify_Logo.png" class="h-7"/>
+            <img src={~p"/images/Spotify_Logo.png"} class="h-7"/>
           </div>
         </div>
 
