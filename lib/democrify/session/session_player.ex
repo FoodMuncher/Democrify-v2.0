@@ -2,20 +2,17 @@ defmodule Democrify.Session.Player do
   use GenServer, restart: :temporary
 
   # TODO: This whole module needs a tidy up!
-  # TODO: change from session pid to use registry in event the worker dies....
-  # TODO: if next and current aren't the playing song, then do something..
 
   require Logger
 
   alias Democrify.Spotify
   alias Democrify.Spotify.{Status, Track}
   alias Democrify.Session
-  alias Democrify.Session.Song
+  alias Democrify.Session.{Song, Registry}
   alias Democrify.Session.Worker, as: SessionWorker
 
   defstruct [
     :session_id,
-    :session_pid,
     :spotify_data,
     :queued_song,
     :current_song
@@ -30,7 +27,7 @@ defmodule Democrify.Session.Player do
   """
   @spec start_link(String.t(), Spotify.t()) :: GenServer.on_start()
   def start_link(session_id, spotify_data) do
-    GenServer.start_link(__MODULE__, {session_id, self(), spotify_data})
+    GenServer.start_link(__MODULE__, {session_id, spotify_data})
   end
 
   # ===========================================================
@@ -38,13 +35,12 @@ defmodule Democrify.Session.Player do
   # ===========================================================
 
   @impl true
-  def init({session_id, session_pid, spotify_data}) do
+  def init({session_id, spotify_data}) do
     Spotify.subscribe(spotify_data)
     poll_status()
 
     {:ok, %__MODULE__{
       session_id:   session_id,
-      session_pid:  session_pid,
       spotify_data: spotify_data
     }}
   end
@@ -96,7 +92,8 @@ defmodule Democrify.Session.Player do
   defp poll_status(), do: Process.send_after(self(), :check_status, 1000)
 
   defp play_next_song(state = %__MODULE__{}) do
-    song = SessionWorker.fetch_top_track(state.session_pid)
+    song = Registry.lookup!(state.session_id)
+    |> SessionWorker.fetch_top_track()
 
     if song do
       case Spotify.play_song(song, state.spotify_data) do
@@ -127,7 +124,8 @@ defmodule Democrify.Session.Player do
   defp handle_song_statuses(%Track{}, state = %__MODULE__{}), do: state
 
   defp queue_next_song(state = %__MODULE__{queued_song: nil, spotify_data: spotify_data = %Spotify{}}) do
-    song = SessionWorker.fetch_top_track(state.session_pid)
+    song = Registry.lookup!(state.session_id)
+    |> SessionWorker.fetch_top_track()
 
     if song do
       Spotify.add_song_to_queue(song, spotify_data)
