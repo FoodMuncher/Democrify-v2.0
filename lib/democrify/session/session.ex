@@ -112,14 +112,6 @@ defmodule Democrify.Session do
   end
 
   @doc """
-    TODO: Do this doc and spec...
-  """
-  @spec change_song(Song.t(), map()) :: any()
-  def change_song(%Song{} = song, attrs \\ %{}) do
-    Song.changeset(song, attrs)
-  end
-
-  @doc """
     Subscribes to the given session id's PubSub topic
   """
   @spec subscribe(String.t()) :: :ok | {:error, term}
