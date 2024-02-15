@@ -151,7 +151,7 @@ defmodule Democrify.Session.Worker do
             vote_count: song.vote_count + 1,
             user_votes: Map.put(song.user_votes, user_id, nil)
           }
-          updated_session = add_song_to_session(updated_session, song, [])
+          updated_session = add_song_to_session(updated_session, song)
           {:reply, strip_ids(updated_session), %__MODULE__{state | session: updated_session}}
         else
           Logger.warn("User already voted!!!")
@@ -170,7 +170,7 @@ defmodule Democrify.Session.Worker do
             vote_count: song.vote_count - 1,
             user_votes: Map.delete(song.user_votes, user_id)
           }
-          updated_session = add_song_to_session(updated_session, song, [])
+          updated_session = add_song_to_session(updated_session, song)
           {:reply, strip_ids(updated_session), %__MODULE__{state | session: updated_session}}
         else
           Logger.warn("User hasn't voted!!!")
@@ -209,18 +209,12 @@ defmodule Democrify.Session.Worker do
   # Internal functions
   # =================================
 
-    # TODO: Improve this logic??
-  defp add_song_to_session([], bumped_song = %Song{}, acc) do
-    acc ++ [{bumped_song.id, bumped_song}]
+  defp add_song_to_session([], song = %Song{}), do: [{song.id, song}]
+  defp add_song_to_session([{id, song = %Song{}} | tail], new_song = %Song{}) when song.vote_count < new_song.vote_count do
+    [{new_song.id, new_song}, {id, song} | tail]
   end
-  defp add_song_to_session([{song_id, song = %Song{}} | tail] = list, bumped_song = %Song{}, acc) do
-    case song.vote_count < bumped_song.vote_count do
-      false ->
-        add_song_to_session(tail, bumped_song, acc ++ [{song_id, song}])
-
-      true ->
-        acc ++ [{bumped_song.id, bumped_song}] ++ list
-    end
+  defp add_song_to_session([{id, song = %Song{}} | tail], new_song = %Song{}) do
+    [{id, song} | add_song_to_session(tail, new_song)]
   end
 
   defp strip_ids(list) do
