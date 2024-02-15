@@ -27,6 +27,7 @@ democrify-*.tar
 
 # Ignore assets that are produced by build tools.
 /priv/static/assets/
+priv/static/images/Spotify_Logo-*
 
 # Ignore digested assets cache.
 /priv/static/cache_manifest.json

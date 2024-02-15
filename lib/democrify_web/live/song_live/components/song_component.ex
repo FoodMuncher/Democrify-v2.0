@@ -33,6 +33,10 @@ defmodule DemocrifyWeb.SongLive.Component.Song do
 
             <%= @song.name %> - <%= @song.artists %>
           </div>
+
+          <div class="ml-auto">
+            <img src="images/Spotify_Logo.png" class="h-7"/>
+          </div>
         </div>
 
         <%!-- Bottom Button Row --%>
