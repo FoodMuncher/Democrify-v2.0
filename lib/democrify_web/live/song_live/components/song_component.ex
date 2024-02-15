@@ -19,7 +19,7 @@ defmodule DemocrifyWeb.SongLive.Component.Song do
           <%!-- Song Image --%>
 
           <div class="mr-2 flex-none">
-            <img src={@song.image_url} alt="Missing Image" class="rounded-full h-20">
+            <img src={@song.image_url} alt="Missing Image" class="h-20">
           </div>
 
           <div>
