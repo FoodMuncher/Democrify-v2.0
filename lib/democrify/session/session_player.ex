@@ -1,8 +1,6 @@
 defmodule Democrify.Session.Player do
   use GenServer, restart: :temporary
 
-  # TODO: This whole module needs a tidy up!
-
   require Logger
 
   alias Democrify.Spotify
@@ -13,10 +11,17 @@ defmodule Democrify.Session.Player do
 
   defstruct [
     :session_id,
-    :spotify_data,
     :queued_song,
-    :current_song
+    :current_song,
+    :spotify_data
   ]
+
+  @type state() :: %__MODULE__{
+    session_id:   String.t(),
+    queued_song:  Song.t(),
+    current_song: Song.t(),
+    spotify_data: Spotify.t()
+  }
 
   # ===========================================================
   #  Exported Functions
@@ -139,12 +144,8 @@ defmodule Democrify.Session.Player do
   end
   defp queue_next_song(state = %__MODULE__{}), do: state
 
-  defp is_current_song(%Status{item: %Track{id: id}}, %__MODULE__{current_song: %Song{track_id: id}}) do
-    true
-  end
-  defp is_current_song(%Status{}, %__MODULE__{}) do
-    false
-  end
+  defp is_current_song(%Status{item: %Track{id: id}}, %__MODULE__{current_song: %Song{track_id: id}}), do: true
+  defp is_current_song(%Status{}, %__MODULE__{}),                                                      do: false
 
   defp reached_end_of_queue?(%Status{progress_ms: 0, is_playing: false}), do: true
   defp reached_end_of_queue?(%Status{item: %Track{}}),                    do: false
