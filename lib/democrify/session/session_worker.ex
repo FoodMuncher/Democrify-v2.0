@@ -146,10 +146,10 @@ defmodule Democrify.Session.Worker do
   def handle_call({:increment, user_id, song_id}, _from, state = %__MODULE__{session: session}) do
     case List.keytake(session, song_id, 0) do
       {{^song_id, song = %Song{}}, updated_session} ->
-        unless Map.has_key?(song.user_votes, user_id) do
+        unless MapSet.member?(song.user_votes, user_id) do
           song = %Song{song |
             vote_count: song.vote_count + 1,
-            user_votes: Map.put(song.user_votes, user_id, nil)
+            user_votes: MapSet.put(song.user_votes, user_id)
           }
           updated_session = add_song_to_session(updated_session, song)
           {:reply, strip_ids(updated_session), %__MODULE__{state | session: updated_session}}
@@ -165,10 +165,10 @@ defmodule Democrify.Session.Worker do
   def handle_call({:decrement, user_id, song_id}, _from, state = %__MODULE__{session: session}) do
     case List.keytake(session, song_id, 0) do
       {{^song_id, song = %Song{}}, updated_session} ->
-        if Map.has_key?(song.user_votes, user_id) do
+        if MapSet.member?(song.user_votes, user_id) do
           song = %Song{song |
             vote_count: song.vote_count - 1,
-            user_votes: Map.delete(song.user_votes, user_id)
+            user_votes: MapSet.delete(song.user_votes, user_id)
           }
           updated_session = add_song_to_session(updated_session, song)
           {:reply, strip_ids(updated_session), %__MODULE__{state | session: updated_session}}

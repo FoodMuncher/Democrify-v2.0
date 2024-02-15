@@ -3,7 +3,6 @@ defmodule Democrify.Session.Song do
 
   alias Democrify.Spotify.Artist
 
-  # TODO: Change user_votes to a MapSet...
   # TODO: Create song in here
 
   # ========================================
@@ -20,7 +19,7 @@ defmodule Democrify.Session.Song do
     :track_uri,
     image_url:  @spotify_image_url,
     vote_count: 0,
-    user_votes: Map.new()
+    user_votes: MapSet.new()
   ]
 
   @type t() :: %__MODULE__{
@@ -32,7 +31,7 @@ defmodule Democrify.Session.Song do
     track_id:   String.t(),
     track_uri:  String.t(),
     vote_count: integer(),
-    user_votes: map(),
+    user_votes: MapSet.t(String.t()),
     image_url:  String.t()
   }
 

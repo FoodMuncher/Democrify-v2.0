@@ -42,7 +42,7 @@ defmodule DemocrifyWeb.SongLive.Component.Song do
           <%!-- Vote Button --%>
 
           <.vote_button
-            voted={Map.has_key?(@song.user_votes, @user_id)}
+            voted={MapSet.member?(@song.user_votes, @user_id)}
             myself={@myself}
             user_id={@user_id}
             session_id={@session_id}
