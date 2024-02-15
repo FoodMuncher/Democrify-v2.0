@@ -1,25 +1,30 @@
 defmodule Democrify.Session.Song do
-  use Ecto.Schema
-  import Ecto.Changeset
-
   @spotify_image_url "https://upload.wikimedia.org/wikipedia/commons/thu…text.svg/1024px-Spotify_logo_without_text.svg.png"
 
-  # TODO: Change this to a struct????
-  # TODO: Change user_votes to a MapSet...
+  alias Democrify.Spotify.Artist
 
-  schema "session" do
-    field :name,       :string
-    field :artists,    :string
-    field :user_id,    :string
-    field :username,   :string
-    field :track_id,   :string
-    field :track_uri,  :string
-    field :vote_count, :integer, default: 0
-    field :user_votes, :map,     default: Map.new()
-    field :image_url,  :string,  default: @spotify_image_url
-  end
+  # TODO: Change user_votes to a MapSet...
+  # TODO: Create song in here
+
+  # ========================================
+  # Exported Functions
+  # ========================================
+
+  defstruct [
+    :id,
+    :name,
+    :artists,
+    :user_id,
+    :username,
+    :track_id,
+    :track_uri,
+    image_url:  @spotify_image_url,
+    vote_count: 0,
+    user_votes: Map.new()
+  ]
 
   @type t() :: %__MODULE__{
+    id:         String.t(),
     name:       String.t(),
     artists:    String.t(),
     user_id:    String.t(),
@@ -31,13 +36,14 @@ defmodule Democrify.Session.Song do
     image_url:  String.t()
   }
 
-  @doc false
-  def changeset(song = %__MODULE__{}, attrs) do
-    song
-    |> cast(attrs, [:name])
-    |> validate_required([:name])
-  end
+  # ========================================
+  # Exported Functions
+  # ========================================
 
+  @doc """
+    Creates a string of all the artist names, from a list of Artists structs
+  """
+  @spec artists([Artist.t()]) :: String.t()
   def artists([artist]) do
     "#{artist.name}"
   end
