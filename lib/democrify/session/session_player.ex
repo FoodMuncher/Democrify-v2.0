@@ -53,11 +53,11 @@ defmodule Democrify.Session.Player do
   @impl true
   def handle_info(:check_status, state = %__MODULE__{}) do
     state = case Spotify.get_player_status(state.spotify_data) do
-      {:ok, status = %Status{item: track = %Track{}}} ->
+      {:ok, status = %Status{}} ->
         if is_current_song(status, state) and not reached_end_of_queue?(status) do
-          state = handle_song_statuses(track, state)
+          state = handle_song_statuses(status.item, state)
 
-          if track.duration_ms - status.progress_ms < 2500 do
+          if almost_finished?(status) do
             queue_next_song(state)
           else
             state
@@ -127,6 +127,10 @@ defmodule Democrify.Session.Player do
     }
   end
   defp handle_song_statuses(%Track{}, state = %__MODULE__{}), do: state
+
+  defp almost_finished?(%Status{progress_ms: progress_ms, item: %Track{duration_ms: duration_ms}}) do
+    (duration_ms - progress_ms) < 2500
+  end
 
   defp queue_next_song(state = %__MODULE__{queued_song: nil, spotify_data: spotify_data = %Spotify{}}) do
     song = Registry.lookup!(state.session_id)
