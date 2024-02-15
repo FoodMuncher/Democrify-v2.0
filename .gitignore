@@ -36,3 +36,4 @@ priv/static/images/Spotify_Logo-*
 npm-debug.log
 /assets/node_modules/
 
+test_user.txt
