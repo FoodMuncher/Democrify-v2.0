@@ -26,7 +26,7 @@ defmodule DemocrifyWeb.SongLive.Component.Form do
             %>
 
             <%= if @suggested_songs do %>
-              <%= unless @suggested_songs == :loading do %>
+              <%= unless suggested_songs_loading?(@suggested_songs) do %>
 
                 <%!-- Suggested Songs Select --%>
                 <%= select f, :track_id, @suggested_songs,
@@ -47,6 +47,7 @@ defmodule DemocrifyWeb.SongLive.Component.Form do
             <%!-- <%= error_tag f, :song_name %> --%>
 
             <%= submit "Save",
+              disabled: suggested_songs_loading?(@suggested_songs),
               phx_disable_with: "Saving...",
               class: "py-2 px-6 rounded-full text-spotify_white font-semibold border-2 border-spotify_white
               bg-spotify_background_black text-spotify_background_black text-sm
@@ -79,4 +80,7 @@ defmodule DemocrifyWeb.SongLive.Component.Form do
       </svg>
     """
   end
+
+  defp suggested_songs_loading?(:loading), do: true
+  defp suggested_songs_loading?(_songs),   do: false
 end
