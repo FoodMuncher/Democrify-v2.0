@@ -5,7 +5,7 @@ defmodule Democrify.Session.Worker do
 
   alias Democrify.Spotify
   alias Democrify.Session.Song
-  alias Democrify.Spotify.Player, as: SpotifyPlayer
+  alias Democrify.Session.Player, as: SessionPlayer
 
   # TODO: Have cleanup message or time out, which cleans up this is session if it's inactive for x amount of time...
 
@@ -114,7 +114,7 @@ defmodule Democrify.Session.Worker do
   def handle_continue(nil, state = %__MODULE__{}) do
     Process.flag(:trap_exit, true)
     # TODO: Tidy this function call up!!!
-    {:ok, player_pid} = SpotifyPlayer.start_link(state.session_id, state.spotify_data)
+    {:ok, player_pid} = SessionPlayer.start_link(state.session_id, state.spotify_data)
     {:noreply, %__MODULE__{state | player_pid: player_pid}}
   end
 
@@ -201,7 +201,7 @@ defmodule Democrify.Session.Worker do
   end
   def handle_info({:EXIT, _pid, reason}, state = %__MODULE__{}) do
     Logger.error("Player Crashed, Reason: #{inspect reason}")
-    {:ok, player_pid} = SpotifyPlayer.start_link(state.session_id, state.spotify_data)
+    {:ok, player_pid} = SessionPlayer.start_link(state.session_id, state.spotify_data)
     {:noreply, %__MODULE__{state | player_pid: player_pid}}
   end
 

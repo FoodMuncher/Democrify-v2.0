@@ -1,4 +1,4 @@
-defmodule Democrify.Spotify.Player do
+defmodule Democrify.Session.Player do
   use GenServer, restart: :temporary
 
   # TODO: This whole module needs a tidy up!
