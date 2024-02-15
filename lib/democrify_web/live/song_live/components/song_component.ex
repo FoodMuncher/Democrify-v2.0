@@ -18,9 +18,9 @@ defmodule DemocrifyWeb.SongLive.Component.Song do
 
           <%!-- Song Image --%>
 
-          <div class="mr-2 flex-none">
+          <a class="mr-2 flex-none" href={@song.track_uri} >
             <img src={@song.image_url} alt="Missing Image" class="h-20">
-          </div>
+          </a>
 
           <div>
 
@@ -30,8 +30,9 @@ defmodule DemocrifyWeb.SongLive.Component.Song do
             <br>
 
             <%!-- Song/Artist Name --%>
-
-            <%= @song.name %> - <%= @song.artists %>
+            <a href={@song.track_uri} >
+              <%= @song.name %> - <%= @song.artists %>
+            </a>
           </div>
 
           <div class="ml-auto">
