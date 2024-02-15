@@ -52,11 +52,10 @@ defmodule Democrify.Session.Player do
   @impl true
   def handle_info(:check_status, state = %__MODULE__{}) do
     state = case Spotify.get_player_status(state.spotify_data) do
-      {:ok, status = %Status{item: track = %Track{}}} when not is_nil(state.current_song) ->
+      {:ok, status = %Status{item: track = %Track{}}} ->
         if is_current_song(status, state) and not reached_end_of_queue?(status) do
           state = handle_song_statuses(track, state)
 
-          # TODO: check that the current song is whats expected...
           if track.duration_ms - status.progress_ms < 2500 do
             queue_next_song(state)
           else
@@ -64,8 +63,10 @@ defmodule Democrify.Session.Player do
           end
         else
           # Either:
+          # * Spotify is playing a song which isn't in the queue.
           # * We have a spotify session, but democrify hasn't played any songs yet.
           # * There were no more songs in the queue and the current song finished.
+
           play_next_song(state)
         end
 
