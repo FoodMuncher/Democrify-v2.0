@@ -3,8 +3,6 @@ defmodule Democrify.Session.Song do
 
   alias Democrify.Spotify.Artist
 
-  # TODO: Create song in here
-
   # ========================================
   # Exported Functions
   # ========================================
