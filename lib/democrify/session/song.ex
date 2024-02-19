@@ -21,7 +21,7 @@ defmodule Democrify.Session.Song do
   ]
 
   @type t() :: %__MODULE__{
-    id:         String.t(),
+    id:         integer(),
     name:       String.t(),
     artists:    String.t(),
     user_id:    String.t(),
