@@ -103,8 +103,7 @@ defmodule Democrify.Session.Player do
     if song do
       case Spotify.play_song(song, state.spotify_data) do
         :ok ->
-
-          Session.delete_song(song, state.session_id)
+          Session.delete_song(state.session_id, song)
 
           %__MODULE__{state |
             current_song: song,
@@ -139,7 +138,7 @@ defmodule Democrify.Session.Player do
     if song do
       Spotify.add_song_to_queue(song, spotify_data)
 
-      Session.delete_song(song, state.session_id)
+      Session.delete_song(state.session_id, song)
 
       %{state | queued_song: song}
     else

@@ -89,11 +89,11 @@ defmodule Democrify.Session.Worker do
   end
 
   @doc """
-    remove the song from the session.
+    Remove the song from the session.
   """
-  @spec delete(pid(), Song.t()) :: [Song.t()]
-  def delete(worker_pid, %Song{id: id}) do
-    GenServer.call(worker_pid, {:delete, id})
+  @spec delete(pid(), integer()) :: [Song.t()]
+  def delete(worker_pid, song_id) do
+    GenServer.call(worker_pid, {:delete, song_id})
   end
 
   # =================================

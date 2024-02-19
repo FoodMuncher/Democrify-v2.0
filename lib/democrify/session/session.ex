@@ -104,10 +104,11 @@ defmodule Democrify.Session do
     Deletes the song from teh session.
     Returns the updated list of songs for this session.
   """
-  @spec delete_song(Song.t(), String.t()) :: [Song.t()]
-  def delete_song(%Song{} = song, session_id) do
+  @spec delete_song(String.t(), Song.t() | integer()) :: [Song.t()]
+  def delete_song(session_id, %Song{id: id}), do: delete_song(session_id, id)
+  def delete_song(session_id, song_id) do
     Registry.lookup!(session_id)
-    |> Worker.delete(song)
+    |> Worker.delete(song_id)
     |> broadcast(session_id, :songs_changed)
   end
 

@@ -52,14 +52,7 @@ defmodule DemocrifyWeb.SongLive.Index do
 
   @impl true
   def handle_event("delete", %{"id" => id}, socket) do
-    session_id = socket.assigns.session_id
-
-    ## TODO: Potential improvement, delete handles ID and song, saves fetching and deleting...
-    songs =
-      Session.get_song!(id, session_id)
-      |> Session.delete_song(session_id)
-
-    {:noreply, assign(socket, :session, songs)}
+    {:noreply, assign(socket, :session, Session.delete_song(socket.assigns.session_id, String.to_integer(id)))}
   end
   def handle_event("add_song_query", %{"track_id" => _track_id}, socket) do
     {:noreply, socket}
