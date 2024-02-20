@@ -110,7 +110,7 @@ defmodule DemocrifyWeb.SongLive.Index do
     |> assign(:song,       nil)
   end
 
-  defp loading?(""),    do: nil
+  defp loading?(""),     do: nil
   defp loading?(_query), do: :loading
 
   defp get_suggested_songs("", _spotify_data), do: nil
