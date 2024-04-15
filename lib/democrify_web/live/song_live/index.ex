@@ -28,12 +28,12 @@ defmodule DemocrifyWeb.SongLive.Index do
         assign(socket, :session, [])
       end
 
-      {:ok,
-       socket
-       |> assign(:user_id,        profile.id)
-       |> assign(:username,       profile.display_name)
-       |> assign(:session_id,     session_id)
-       |> assign(:spotify_data,   spotify_data)}
+      {:ok, assign(socket,
+        user_id:      profile.id,
+        username:     profile.display_name,
+        session_id:   session_id,
+        spotify_data: spotify_data
+      )}
     else
       _ ->
         {:ok, redirect(socket, to: ~p"/")}
@@ -43,10 +43,12 @@ defmodule DemocrifyWeb.SongLive.Index do
   @impl true
   def handle_params(params, _url, socket) do
     {:noreply, socket
-      |> assign(:session_id,      socket.assigns.session_id)
-      |> assign(:action,          socket.assigns.live_action)
-      |> assign(:query,           "")
-      |> assign(:suggested_songs, nil)
+      |> assign(
+        query:           "",
+        action:          socket.assigns.live_action,
+        session_id:      socket.assigns.session_id,
+        suggested_songs: nil
+      )
       |> apply_action(socket.assigns.live_action, params)}
   end
 
