@@ -79,7 +79,7 @@ defmodule DemocrifyWeb.SongLive.Index do
   end
   def handle_info({:updated_spotify_data, spotify_data}, socket) do
     Logger.info("Index Live View #{socket.assigns.session_id} received new spotify_data")
-    # TODO: Add spotify_data to the session, if you refresh te page after the token has
+    # TODO: Add spotify_data to the session, if you refresh the page after the token has
     #       refreshed it'll pull old token from the session.
     {:noreply, assign(socket, :spotify_data, spotify_data)}
   end
