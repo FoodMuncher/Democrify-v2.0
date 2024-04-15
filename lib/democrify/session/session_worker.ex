@@ -4,8 +4,7 @@ defmodule Democrify.Session.Worker do
   require Logger
 
   alias Democrify.Spotify
-  alias Democrify.Session.Song
-  alias Democrify.Session.Player, as: SessionPlayer
+  alias Democrify.Session.{Song, Player}
 
   # TODO: Have cleanup message or time out, which cleans up this is session if it's inactive for x amount of time...
 
@@ -13,6 +12,7 @@ defmodule Democrify.Session.Worker do
     :player_pid,
     :session_id,
     :spotify_data,
+    :current_song,
     id:      1,
     session: [],
   ]
@@ -96,6 +96,14 @@ defmodule Democrify.Session.Worker do
     GenServer.call(worker_pid, {:delete, song_id})
   end
 
+  @doc """
+    Returns the current song
+  """
+  @spec get_current_song(pid()) :: Song.t() | nil
+  def get_current_song(worker_pid) do
+    GenServer.call(worker_pid, :get_current_song)
+  end
+
   # =================================
   # Callback Functions
   # =================================
@@ -103,6 +111,7 @@ defmodule Democrify.Session.Worker do
   @impl true
   def init(init_args) do
     Spotify.subscribe(init_args.spotify_data)
+    Player.subscribe(init_args.session_id)
 
     {:ok, %__MODULE__{
       session_id:   init_args.session_id,
@@ -114,7 +123,7 @@ defmodule Democrify.Session.Worker do
   def handle_continue(nil, state = %__MODULE__{}) do
     Process.flag(:trap_exit, true)
     # TODO: Tidy this function call up!!!
-    {:ok, player_pid} = SessionPlayer.start_link(state.session_id, state.spotify_data)
+    {:ok, player_pid} = Player.start_link(state.session_id, state.spotify_data)
     {:noreply, %__MODULE__{state | player_pid: player_pid}}
   end
 
@@ -198,15 +207,21 @@ defmodule Democrify.Session.Worker do
     session = List.keydelete(state.session, song_id, 0)
     {:reply, strip_ids(session), %__MODULE__{state | session: session}}
   end
+  def handle_call(:get_current_song, _from, state = %__MODULE__{}) do
+    {:reply, state.current_song, state}
+  end
 
   @impl true
   def handle_info({:updated_spotify_data, spotify_data}, state = %__MODULE__{}) do
     Logger.info("Session Worker #{state.session_id} received new spotify_data")
     {:noreply, %__MODULE__{state | spotify_data: spotify_data}}
   end
+  def handle_info({:current_song, song = %Song{}}, state = %__MODULE__{}) do
+    {:noreply, %__MODULE__{state | current_song: song}}
+  end
   def handle_info({:EXIT, _pid, reason}, state = %__MODULE__{}) do
     Logger.error("Player Crashed, Reason: #{inspect reason}")
-    {:ok, player_pid} = SessionPlayer.start_link(state.session_id, state.spotify_data)
+    {:ok, player_pid} = Player.start_link(state.session_id, state.spotify_data)
     {:noreply, %__MODULE__{state | player_pid: player_pid}}
   end
 

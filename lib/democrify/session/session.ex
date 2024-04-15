@@ -113,6 +113,15 @@ defmodule Democrify.Session do
   end
 
   @doc """
+    Gets the current song from the workers state.
+  """
+  @spec get_current_song(Strong.t()) :: Song.t() | nil
+  def get_current_song(session_id) do
+    Registry.lookup!(session_id)
+    |> Worker.get_current_song()
+  end
+
+  @doc """
     Subscribes to the given session id's PubSub topic
   """
   @spec subscribe(String.t()) :: :ok | {:error, term}

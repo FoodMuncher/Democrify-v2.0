@@ -35,6 +35,14 @@ defmodule Democrify.Session.Player do
     GenServer.start_link(__MODULE__, {session_id, spotify_data})
   end
 
+  @doc """
+    Subscribe to the current song updates for the given session id
+  """
+  @spec subscribe(String.t()) :: :ok | {:error, term()}
+  def subscribe(session_id) do
+    Phoenix.PubSub.subscribe(Democrify.PubSub, "current_song:#{session_id}")
+  end
+
   # ===========================================================
   #  Callback Functions
   # ===========================================================
@@ -113,6 +121,7 @@ defmodule Democrify.Session.Player do
             current_song: song,
             queued_song:  nil
           }
+          |> broadcast_current_song()
 
         :error ->
           state
@@ -127,6 +136,7 @@ defmodule Democrify.Session.Player do
       current_song: state.queued_song,
       queued_song:  nil
     }
+    |> broadcast_current_song()
   end
 
   defp almost_finished?(%Status{progress_ms: progress_ms, item: %Track{duration_ms: duration_ms}}) do
@@ -157,4 +167,9 @@ defmodule Democrify.Session.Player do
 
   defp reached_end_of_queue?(%Status{progress_ms: 0, is_playing: false}), do: true
   defp reached_end_of_queue?(%Status{item: %Track{}}),                    do: false
+
+  defp broadcast_current_song(state = %__MODULE__{session_id: session_id, current_song: song}) do
+    Phoenix.PubSub.broadcast(Democrify.PubSub, "current_song:#{session_id}", {:current_song, song})
+    state
+  end
 end

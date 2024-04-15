@@ -3,7 +3,7 @@ defmodule DemocrifyWeb.SongLive.Index do
   use DemocrifyWeb, :live_view
 
   alias Democrify.{Session, Spotify}
-  alias Democrify.Session.Song
+  alias Democrify.Session.{Song, Player}
   alias Democrify.Spotify.{Search, Tracks, Track, Profile}
 
   @check_query_wait 750 # 3/4 of a second.
@@ -22,6 +22,7 @@ defmodule DemocrifyWeb.SongLive.Index do
     do
       socket = if connected?(socket) do
         Session.subscribe(session_id)
+        Player.subscribe(session_id)
         Spotify.subscribe(spotify_data)
         assign(socket, :session, Session.list_session(session_id))
       else
@@ -32,7 +33,8 @@ defmodule DemocrifyWeb.SongLive.Index do
         user_id:      profile.id,
         username:     profile.display_name,
         session_id:   session_id,
-        spotify_data: spotify_data
+        spotify_data: spotify_data,
+        current_song: Session.get_current_song(session_id)
       )}
     else
       _ ->
@@ -90,6 +92,9 @@ defmodule DemocrifyWeb.SongLive.Index do
   end
   def handle_info({:check_query, _old_query}, socket) do
     {:noreply, socket}
+  end
+  def handle_info({:current_song, song = %Song{}}, socket) do
+    {:noreply, assign(socket, :current_song, song)}
   end
 
   # =================================
