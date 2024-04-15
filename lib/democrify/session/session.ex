@@ -101,7 +101,7 @@ defmodule Democrify.Session do
   end
 
   @doc """
-    Deletes the song from teh session.
+    Deletes the song from the session.
     Returns the updated list of songs for this session.
   """
   @spec delete_song(String.t(), Song.t() | integer()) :: [Song.t()]
