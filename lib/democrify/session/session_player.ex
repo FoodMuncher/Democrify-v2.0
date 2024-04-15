@@ -54,21 +54,25 @@ defmodule Democrify.Session.Player do
   def handle_info(:check_status, state = %__MODULE__{}) do
     state = case Spotify.get_player_status(state.spotify_data) do
       {:ok, status = %Status{}} ->
-        if is_current_song(status, state) and not reached_end_of_queue?(status) do
-          state = handle_song_statuses(status.item, state)
+        cond do
+          current_song?(status, state) and not reached_end_of_queue?(status) ->
+            # The song is the same as we have in the state, and it hasn't finished playing.
+            if almost_finished?(status) do
+              queue_next_song(state)
+            else
+              state
+            end
 
-          if almost_finished?(status) do
-            queue_next_song(state)
-          else
-            state
-          end
-        else
-          # Either:
-          # * Spotify is playing a song which isn't in the queue.
-          # * We have a spotify session, but democrify hasn't played any songs yet.
-          # * There were no more songs in the queue and the current song finished.
+          queued_song?(status, state) ->
+            # The song we queued previously is now being played.
+            update_current_song(state)
 
-          play_next_song(state)
+          true ->
+            # Either:
+            # * Spotify is playing a song which isn't in the queue.
+            # * We have a spotify session, but democrify hasn't played any songs yet.
+            # * There were no more songs in the queue and the current song finished.
+            play_next_song(state)
         end
 
       # No spotify session currently.
@@ -118,14 +122,12 @@ defmodule Democrify.Session.Player do
     end
   end
 
-  # This is for when we queue a track, we want to know when it has started playing.
-  defp handle_song_statuses(%Track{id: same_id}, state = %__MODULE__{queued_song: %Song{track_id: same_id}}) do
+  defp update_current_song(state = %__MODULE__{}) do
     %__MODULE__{state |
       current_song: state.queued_song,
       queued_song:  nil
     }
   end
-  defp handle_song_statuses(%Track{}, state = %__MODULE__{}), do: state
 
   defp almost_finished?(%Status{progress_ms: progress_ms, item: %Track{duration_ms: duration_ms}}) do
     (duration_ms - progress_ms) < 2500
@@ -140,15 +142,18 @@ defmodule Democrify.Session.Player do
 
       Session.delete_song(state.session_id, song)
 
-      %{state | queued_song: song}
+      %__MODULE__{state | queued_song: song}
     else
       state
     end
   end
   defp queue_next_song(state = %__MODULE__{}), do: state
 
-  defp is_current_song(%Status{item: %Track{id: id}}, %__MODULE__{current_song: %Song{track_id: id}}), do: true
-  defp is_current_song(%Status{}, %__MODULE__{}),                                                      do: false
+  defp current_song?(%Status{item: %Track{id: id}}, %__MODULE__{current_song: %Song{track_id: id}}), do: true
+  defp current_song?(%Status{}, %__MODULE__{}),                                                      do: false
+
+  defp queued_song?(%Status{item: %Track{id: id}}, %__MODULE__{queued_song: %Song{track_id: id}}), do: true
+  defp queued_song?(%Status{}, %__MODULE__{}),                                                     do: false
 
   defp reached_end_of_queue?(%Status{progress_ms: 0, is_playing: false}), do: true
   defp reached_end_of_queue?(%Status{item: %Track{}}),                    do: false
