@@ -46,9 +46,9 @@ defmodule Democrify.Session.Worker do
   end
 
   @doc """
-    Returns the song for the given ID.
+    Returns the song for the given ID or nil.
   """
-  @spec fetch(pid(), integer() | String.t()) :: Song.t()
+  @spec fetch(pid(), integer() | String.t()) :: Song.t() | nil
   def fetch(worker_pid, song_id) when is_binary(song_id) do
     fetch(worker_pid, String.to_integer(song_id))
   end
@@ -122,64 +122,69 @@ defmodule Democrify.Session.Worker do
   def handle_call(:fetch_all, _from, state = %__MODULE__{}) do
     {:reply, strip_ids(state.session), state}
   end
-  def handle_call(:fetch_top_song, _from, state = %__MODULE__{}) do
-    return =
-      if state.session != [] do
-        {_id, song} = hd(state.session)
-        song
-      else
-        nil
-      end
-
-    {:reply, return, state}
+  def handle_call(:fetch_top_song, _from, state = %__MODULE__{session: []}) do
+    {:reply, nil, state}
   end
-  def handle_call({:fetch, id}, _from, state = %__MODULE__{}) do
-    {^id, song} = List.keyfind(state.session, id, 0)
+  def handle_call(:fetch_top_song, _from, state = %__MODULE__{session: [{_id, song} | _]}) do
     {:reply, song, state}
   end
-
-  def handle_call({:add, song}, _from, state = %__MODULE__{}) do
-    session = state.session ++ [{state.id, %Song{song | id: state.id}}]
-    {:reply, strip_ids(session), %__MODULE__{state | session: session, id: state.id + 1}}
+  def handle_call({:fetch, id}, _from, state = %__MODULE__{}) do
+    {^id, song} = List.keyfind(state.session, id, 0, {id, nil})
+    {:reply, song, state}
   end
-  # TODO: This could do with a tidy...
+  def handle_call({:add, song}, _from, state = %__MODULE__{id: id}) do
+    session = state.session ++ [{id, %Song{song | id: id}}]
+    {:reply, strip_ids(session), %__MODULE__{state | session: session, id: id + 1}}
+  end
   def handle_call({:increment, user_id, song_id}, _from, state = %__MODULE__{session: session}) do
-    case List.keytake(session, song_id, 0) do
-      {{^song_id, song = %Song{}}, updated_session} ->
-        unless MapSet.member?(song.user_votes, user_id) do
-          song = %Song{song |
-            vote_count: song.vote_count + 1,
-            user_votes: MapSet.put(song.user_votes, user_id)
-          }
-          updated_session = add_song_to_session(updated_session, song)
-          {:reply, strip_ids(updated_session), %__MODULE__{state | session: updated_session}}
-        else
-          Logger.warn("User already voted!!!")
-          {:reply, strip_ids(session), state}
-        end
-      nil ->
-        Logger.error("Received unknown increment for Song: #{song_id}")
-        {:reply, strip_ids(session), state}
-    end
+    session =
+      with {{_id, song = %Song{}}, session} <- List.keytake(session, song_id, 0),
+           false                            <- MapSet.member?(song.user_votes, user_id)
+      do
+        song = %Song{song |
+          vote_count: song.vote_count + 1,
+          user_votes: MapSet.put(song.user_votes, user_id)
+        }
+
+        add_song_to_session(session, song)
+      else
+        # List.keytake/3 case
+        nil ->
+          Logger.error("Received increment for unknown Song: #{song_id} Session: #{state.session_id}")
+          session
+
+        # Mapset.member?/2 case
+        true ->
+          Logger.warn("User already voted for Song: #{song_id} Session: #{state.session_id} User: #{user_id}")
+          session
+      end
+
+    {:reply, strip_ids(session), %__MODULE__{state | session: session}}
   end
   def handle_call({:decrement, user_id, song_id}, _from, state = %__MODULE__{session: session}) do
-    case List.keytake(session, song_id, 0) do
-      {{^song_id, song = %Song{}}, updated_session} ->
-        if MapSet.member?(song.user_votes, user_id) do
-          song = %Song{song |
-            vote_count: song.vote_count - 1,
-            user_votes: MapSet.delete(song.user_votes, user_id)
-          }
-          updated_session = add_song_to_session(updated_session, song)
-          {:reply, strip_ids(updated_session), %__MODULE__{state | session: updated_session}}
-        else
-          Logger.warn("User hasn't voted!!!")
-          {:reply, strip_ids(session), state}
-        end
-      nil ->
-        Logger.error("Received unknown decrement for Song: #{song_id}")
-        {:reply, strip_ids(session), state}
-    end
+    session =
+      with {{_id, song = %Song{}}, session} <- List.keytake(session, song_id, 0),
+           true                             <- MapSet.member?(song.user_votes, user_id)
+      do
+        song = %Song{song |
+          vote_count: song.vote_count - 1,
+          user_votes: MapSet.delete(song.user_votes, user_id)
+        }
+
+        add_song_to_session(session, song)
+      else
+        # List.keytake/3 case
+        nil ->
+          Logger.error("Received decrement for unknown Song: #{song_id} Session: #{state.session_id}")
+          session
+
+        # Mapset.member?/2 case
+        false ->
+          Logger.warn("User hasn't voted for Song: #{song_id} Session: #{state.session_id} User: #{user_id}")
+          session
+      end
+
+    {:reply, strip_ids(session), %__MODULE__{state | session: session}}
   end
   # TODO: Add test for this guy
   def handle_call({:update, song}, _from, state = %__MODULE__{}) do
