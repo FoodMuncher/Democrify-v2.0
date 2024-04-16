@@ -58,9 +58,6 @@ defmodule DemocrifyWeb.SongLive.Index do
   def handle_event("delete", %{"id" => id}, socket) do
     {:noreply, assign(socket, :session, Session.delete_song(socket.assigns.session_id, String.to_integer(id)))}
   end
-  def handle_event("add_song_query", %{"track_id" => _track_id}, socket) do
-    {:noreply, socket}
-  end
   def handle_event("add_song_query", %{"query" => query}, socket) do
     query = String.trim(query)
 
