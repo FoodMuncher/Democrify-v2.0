@@ -31,7 +31,7 @@ defmodule DemocrifyWeb.SongLive.Component.Form do
                 <%!-- Suggested Songs Select --%>
                 <%= select f, :track_id, @suggested_songs,
                   class: "bg-spotify_elevated_black text-spotify_white rounded-full border-0 font-semibold
-                  focus:border-spotify_white focus:outline focus:ring-0 focus:outline-spotify_white
+                  focus:border-spotify_white focus:outline focus:ring-0 focus:outline-spotify_white w-full
                   placeholder-spotify_subdued focus:placeholder-spotify_white hover:placeholder-spotify_white"
                 %>
 
