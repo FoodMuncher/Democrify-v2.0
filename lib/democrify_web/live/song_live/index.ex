@@ -24,17 +24,22 @@ defmodule DemocrifyWeb.SongLive.Index do
         Session.subscribe(session_id)
         Player.subscribe(session_id)
         Spotify.subscribe(spotify_data)
-        assign(socket, :session, Session.list_session(session_id))
+        assign(socket,
+          session:      Session.list_session(session_id),
+          current_song: Session.get_current_song(session_id)
+        )
       else
-        assign(socket, :session, [])
+        assign(socket,
+          session: [],
+          current_song: nil
+        )
       end
 
       {:ok, assign(socket,
         user_id:      profile.id,
         username:     profile.display_name,
         session_id:   session_id,
-        spotify_data: spotify_data,
-        current_song: Session.get_current_song(session_id)
+        spotify_data: spotify_data
       )}
     else
       _ ->
