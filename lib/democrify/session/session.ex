@@ -1,8 +1,9 @@
 defmodule Democrify.Session do
   @moduledoc """
   The Session context.
-  TODO: specs and docs!!
   """
+
+  # TODO: Use a Registry rather than an ETS for getting worker pids: {:via, Registry, {SessionRegistry, session_id}}
 
   require Logger
 
@@ -38,7 +39,6 @@ defmodule Democrify.Session do
   """
   @spec list_session(String.t()) :: [Song.t()]
   def list_session(session_id) do
-    # TODO: Use actual session ID
     Registry.lookup!(session_id)
     |> Worker.fetch_all()
   end
@@ -138,7 +138,6 @@ defmodule Democrify.Session do
     songs
   end
 
-  # TODO: Maybe use some pet name dep, so it's green-dragon-fly etc
   defp generate_id do
     min = String.to_integer("100000", 36)
     max = String.to_integer("ZZZZZZ", 36)

@@ -67,7 +67,6 @@ defmodule Democrify.Spotify do
 
   @doc """
     Using the refresh token, gets a new access token.
-    # TODO: Does this need to be exported?
   """
   @spec refresh_token(t()) :: Tokens.t()
   def refresh_token(%__MODULE__{refresh_token: refresh_token}) do
@@ -87,7 +86,6 @@ defmodule Democrify.Spotify do
 
   @doc """
     Return users information.
-    TODO: currently used when obtaining the auth token, so don't need to add refreshing atm.
   """
   @spec get_user_information(String.t()) :: Profile.t()
   def get_user_information(access_token) do

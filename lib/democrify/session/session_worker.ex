@@ -122,7 +122,6 @@ defmodule Democrify.Session.Worker do
   @impl true
   def handle_continue(nil, state = %__MODULE__{}) do
     Process.flag(:trap_exit, true)
-    # TODO: Tidy this function call up!!!
     {:ok, player_pid} = Player.start_link(state.session_id, state.spotify_data)
     {:noreply, %__MODULE__{state | player_pid: player_pid}}
   end
@@ -195,7 +194,6 @@ defmodule Democrify.Session.Worker do
 
     {:reply, strip_ids(session), %__MODULE__{state | session: session}}
   end
-  # TODO: Add test for this guy
   def handle_call({:update, song}, _from, state = %__MODULE__{}) do
     session = state.session
     |> List.keydelete(song.id, 0)
