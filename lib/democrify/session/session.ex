@@ -1,8 +1,9 @@
 defmodule Democrify.Session do
   @moduledoc """
   The Session context.
-  TODO: specs and docs!!
   """
+
+  # TODO: Use a Registry rather than an ETS for getting worker pids: {:via, Registry, {SessionRegistry, session_id}}
 
   require Logger
 
@@ -38,7 +39,6 @@ defmodule Democrify.Session do
   """
   @spec list_session(String.t()) :: [Song.t()]
   def list_session(session_id) do
-    # TODO: Use actual session ID
     Registry.lookup!(session_id)
     |> Worker.fetch_all()
   end
@@ -101,22 +101,24 @@ defmodule Democrify.Session do
   end
 
   @doc """
-    Deletes the song from teh session.
+    Deletes the song from the session.
     Returns the updated list of songs for this session.
   """
-  @spec delete_song(Song.t(), String.t()) :: [Song.t()]
-  def delete_song(%Song{} = song, session_id) do
+  @spec delete_song(String.t(), Song.t() | integer()) :: [Song.t()]
+  def delete_song(session_id, %Song{id: id}), do: delete_song(session_id, id)
+  def delete_song(session_id, song_id) do
     Registry.lookup!(session_id)
-    |> Worker.delete(song)
+    |> Worker.delete(song_id)
     |> broadcast(session_id, :songs_changed)
   end
 
   @doc """
-    TODO: Do this doc and spec...
+    Gets the current song from the workers state.
   """
-  @spec change_song(Song.t(), map()) :: any()
-  def change_song(%Song{} = song, attrs \\ %{}) do
-    Song.changeset(song, attrs)
+  @spec get_current_song(Strong.t()) :: Song.t() | nil
+  def get_current_song(session_id) do
+    Registry.lookup!(session_id)
+    |> Worker.get_current_song()
   end
 
   @doc """
@@ -136,7 +138,6 @@ defmodule Democrify.Session do
     songs
   end
 
-  # TODO: Maybe use some pet name dep, so it's green-dragon-fly etc
   defp generate_id do
     min = String.to_integer("100000", 36)
     max = String.to_integer("ZZZZZZ", 36)

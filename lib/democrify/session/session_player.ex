@@ -1,26 +1,27 @@
-defmodule Democrify.Spotify.Player do
+defmodule Democrify.Session.Player do
   use GenServer, restart: :temporary
-
-  # TODO: This whole module needs a tidy up!
-  # TODO: change from session pid to use registry in event the worker dies....
-  # TODO: if next and current aren't the playing song, then do something..
-  # TODO: Handle when the current song ends and there's nothing left in the queue.
 
   require Logger
 
   alias Democrify.Spotify
   alias Democrify.Spotify.{Status, Track}
   alias Democrify.Session
-  alias Democrify.Session.Song
+  alias Democrify.Session.{Song, Registry}
   alias Democrify.Session.Worker, as: SessionWorker
 
   defstruct [
     :session_id,
-    :session_pid,
-    :spotify_data,
     :queued_song,
-    :current_song
+    :current_song,
+    :spotify_data
   ]
+
+  @type state() :: %__MODULE__{
+    session_id:   String.t(),
+    queued_song:  Song.t(),
+    current_song: Song.t(),
+    spotify_data: Spotify.t()
+  }
 
   # ===========================================================
   #  Exported Functions
@@ -31,7 +32,15 @@ defmodule Democrify.Spotify.Player do
   """
   @spec start_link(String.t(), Spotify.t()) :: GenServer.on_start()
   def start_link(session_id, spotify_data) do
-    GenServer.start_link(__MODULE__, {session_id, self(), spotify_data})
+    GenServer.start_link(__MODULE__, {session_id, spotify_data})
+  end
+
+  @doc """
+    Subscribe to the current song updates for the given session id
+  """
+  @spec subscribe(String.t()) :: :ok | {:error, term()}
+  def subscribe(session_id) do
+    Phoenix.PubSub.subscribe(Democrify.PubSub, "current_song:#{session_id}")
   end
 
   # ===========================================================
@@ -39,13 +48,12 @@ defmodule Democrify.Spotify.Player do
   # ===========================================================
 
   @impl true
-  def init({session_id, session_pid, spotify_data}) do
+  def init({session_id, spotify_data}) do
     Spotify.subscribe(spotify_data)
     poll_status()
 
     {:ok, %__MODULE__{
       session_id:   session_id,
-      session_pid:  session_pid,
       spotify_data: spotify_data
     }}
   end
@@ -53,19 +61,27 @@ defmodule Democrify.Spotify.Player do
   @impl true
   def handle_info(:check_status, state = %__MODULE__{}) do
     state = case Spotify.get_player_status(state.spotify_data) do
-      {:ok, status = %Status{item: track = %Track{}}} when not is_nil(state.current_song) ->
-        state = handle_song_statuses(track, state)
+      {:ok, status = %Status{}} ->
+        cond do
+          current_song?(status, state) and not reached_end_of_queue?(status) ->
+            # The song is the same as we have in the state, and it hasn't finished playing.
+            if almost_finished?(status) do
+              queue_next_song(state)
+            else
+              state
+            end
 
-        # TODO: check that the current song is whats expected...
-        if track.duration_ms - status.progress_ms < 2500 do
-          queue_next_song(state)
-        else
-          state
+          queued_song?(status, state) ->
+            # The song we queued previously is now being played.
+            update_current_song(state)
+
+          true ->
+            # Either:
+            # * Spotify is playing a song which isn't in the queue.
+            # * We have a spotify session, but democrify hasn't played any songs yet.
+            # * There were no more songs in the queue and the current song finished.
+            play_next_song(state)
         end
-
-      # We have a spotify session, but democrify hasn't played any songs yet.
-      {:ok, %Status{}} ->
-        play_next_song(state)
 
       # No spotify session currently.
       {:ok, nil} ->
@@ -74,7 +90,6 @@ defmodule Democrify.Spotify.Player do
       # Failed to get spotify session.
       {:error, reason} ->
         Logger.error("Failed to check status as: #{reason}.")
-
         state
     end
 
@@ -94,18 +109,19 @@ defmodule Democrify.Spotify.Player do
   defp poll_status(), do: Process.send_after(self(), :check_status, 1000)
 
   defp play_next_song(state = %__MODULE__{}) do
-    song = SessionWorker.fetch_top_track(state.session_pid)
+    song = Registry.lookup!(state.session_id)
+    |> SessionWorker.fetch_top_track()
 
     if song do
       case Spotify.play_song(song, state.spotify_data) do
         :ok ->
-
-          Session.delete_song(song, state.session_id)
+          Session.delete_song(state.session_id, song)
 
           %__MODULE__{state |
             current_song: song,
             queued_song:  nil
           }
+          |> broadcast_current_song()
 
         :error ->
           state
@@ -115,27 +131,45 @@ defmodule Democrify.Spotify.Player do
     end
   end
 
-  # This is for when we queue a track, we want to know when it has started playing.
-  defp handle_song_statuses(%Track{id: same_id}, state = %__MODULE__{queued_song: %Song{track_id: same_id}}) do
+  defp update_current_song(state = %__MODULE__{}) do
     %__MODULE__{state |
       current_song: state.queued_song,
       queued_song:  nil
     }
+    |> broadcast_current_song()
   end
-  defp handle_song_statuses(%Track{}, state = %__MODULE__{}), do: state
+
+  defp almost_finished?(%Status{progress_ms: progress_ms, item: %Track{duration_ms: duration_ms}}) do
+    (duration_ms - progress_ms) < 2500
+  end
 
   defp queue_next_song(state = %__MODULE__{queued_song: nil, spotify_data: spotify_data = %Spotify{}}) do
-    song = SessionWorker.fetch_top_track(state.session_pid)
+    song = Registry.lookup!(state.session_id)
+    |> SessionWorker.fetch_top_track()
 
     if song do
       Spotify.add_song_to_queue(song, spotify_data)
 
-      Session.delete_song(song, state.session_id)
+      Session.delete_song(state.session_id, song)
 
-      %{state | queued_song: song}
+      %__MODULE__{state | queued_song: song}
     else
       state
     end
   end
   defp queue_next_song(state = %__MODULE__{}), do: state
+
+  defp current_song?(%Status{item: %Track{id: id}}, %__MODULE__{current_song: %Song{track_id: id}}), do: true
+  defp current_song?(%Status{}, %__MODULE__{}),                                                      do: false
+
+  defp queued_song?(%Status{item: %Track{id: id}}, %__MODULE__{queued_song: %Song{track_id: id}}), do: true
+  defp queued_song?(%Status{}, %__MODULE__{}),                                                     do: false
+
+  defp reached_end_of_queue?(%Status{progress_ms: 0, is_playing: false}), do: true
+  defp reached_end_of_queue?(%Status{item: %Track{}}),                    do: false
+
+  defp broadcast_current_song(state = %__MODULE__{session_id: session_id, current_song: song}) do
+    Phoenix.PubSub.broadcast(Democrify.PubSub, "current_song:#{session_id}", {:current_song, song})
+    state
+  end
 end

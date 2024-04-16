@@ -1,4 +1,4 @@
-defmodule DemocrifyWeb.SongLive.SongComponent do
+defmodule DemocrifyWeb.SongLive.Component.Song do
   use DemocrifyWeb, :live_component
 
   alias Democrify.Session
@@ -18,9 +18,9 @@ defmodule DemocrifyWeb.SongLive.SongComponent do
 
           <%!-- Song Image --%>
 
-          <div class="mr-2 flex-none">
-            <img src={@song.image_url} alt="Missing Image" class="rounded-full h-20">
-          </div>
+          <a class="mr-2 flex-none" href={@song.track_uri} >
+            <img src={@song.image_url} alt="Missing Image" class="h-20">
+          </a>
 
           <div>
 
@@ -30,8 +30,13 @@ defmodule DemocrifyWeb.SongLive.SongComponent do
             <br>
 
             <%!-- Song/Artist Name --%>
+            <a href={@song.track_uri} >
+              <%= @song.name %> - <%= @song.artists %>
+            </a>
+          </div>
 
-            <%= @song.name %> - <%= @song.artists %>
+          <div class="ml-auto">
+            <img src={~p"/images/Spotify_Logo.png"} class="hidden sm:flex h-7"/>
           </div>
         </div>
 
@@ -42,7 +47,7 @@ defmodule DemocrifyWeb.SongLive.SongComponent do
           <%!-- Vote Button --%>
 
           <.vote_button
-            voted={Map.has_key?(@song.user_votes, @user_id)}
+            voted={MapSet.member?(@song.user_votes, @user_id)}
             myself={@myself}
             user_id={@user_id}
             session_id={@session_id}

@@ -4,8 +4,7 @@ defmodule Democrify.Session.Worker do
   require Logger
 
   alias Democrify.Spotify
-  alias Democrify.Session.Song
-  alias Democrify.Spotify.Player, as: SpotifyPlayer
+  alias Democrify.Session.{Song, Player}
 
   # TODO: Have cleanup message or time out, which cleans up this is session if it's inactive for x amount of time...
 
@@ -13,6 +12,7 @@ defmodule Democrify.Session.Worker do
     :player_pid,
     :session_id,
     :spotify_data,
+    :current_song,
     id:      1,
     session: [],
   ]
@@ -46,9 +46,9 @@ defmodule Democrify.Session.Worker do
   end
 
   @doc """
-    Returns the song for the given ID.
+    Returns the song for the given ID or nil.
   """
-  @spec fetch(pid(), integer() | String.t()) :: Song.t()
+  @spec fetch(pid(), integer() | String.t()) :: Song.t() | nil
   def fetch(worker_pid, song_id) when is_binary(song_id) do
     fetch(worker_pid, String.to_integer(song_id))
   end
@@ -89,11 +89,19 @@ defmodule Democrify.Session.Worker do
   end
 
   @doc """
-    remove the song from the session.
+    Remove the song from the session.
   """
-  @spec delete(pid(), Song.t()) :: [Song.t()]
-  def delete(worker_pid, %Song{id: id}) do
-    GenServer.call(worker_pid, {:delete, id})
+  @spec delete(pid(), integer()) :: [Song.t()]
+  def delete(worker_pid, song_id) do
+    GenServer.call(worker_pid, {:delete, song_id})
+  end
+
+  @doc """
+    Returns the current song
+  """
+  @spec get_current_song(pid()) :: Song.t() | nil
+  def get_current_song(worker_pid) do
+    GenServer.call(worker_pid, :get_current_song)
   end
 
   # =================================
@@ -103,6 +111,7 @@ defmodule Democrify.Session.Worker do
   @impl true
   def init(init_args) do
     Spotify.subscribe(init_args.spotify_data)
+    Player.subscribe(init_args.session_id)
 
     {:ok, %__MODULE__{
       session_id:   init_args.session_id,
@@ -113,8 +122,7 @@ defmodule Democrify.Session.Worker do
   @impl true
   def handle_continue(nil, state = %__MODULE__{}) do
     Process.flag(:trap_exit, true)
-    # TODO: Tidy this function call up!!!
-    {:ok, player_pid} = SpotifyPlayer.start_link(state.session_id, state.spotify_data)
+    {:ok, player_pid} = Player.start_link(state.session_id, state.spotify_data)
     {:noreply, %__MODULE__{state | player_pid: player_pid}}
   end
 
@@ -122,66 +130,70 @@ defmodule Democrify.Session.Worker do
   def handle_call(:fetch_all, _from, state = %__MODULE__{}) do
     {:reply, strip_ids(state.session), state}
   end
-  def handle_call(:fetch_top_song, _from, state = %__MODULE__{}) do
-    return =
-      if state.session != [] do
-        {_id, song} = hd(state.session)
-        song
-      else
-        nil
-      end
-
-    {:reply, return, state}
+  def handle_call(:fetch_top_song, _from, state = %__MODULE__{session: []}) do
+    {:reply, nil, state}
   end
-  def handle_call({:fetch, id}, _from, state = %__MODULE__{}) do
-    {^id, song} = List.keyfind(state.session, id, 0)
+  def handle_call(:fetch_top_song, _from, state = %__MODULE__{session: [{_id, song} | _]}) do
     {:reply, song, state}
   end
-
-  def handle_call({:add, song}, _from, state = %__MODULE__{}) do
-    session = state.session ++ [{state.id, %Song{song | id: state.id}}]
-    {:reply, strip_ids(session), %__MODULE__{state | session: session, id: state.id + 1}}
+  def handle_call({:fetch, id}, _from, state = %__MODULE__{}) do
+    {^id, song} = List.keyfind(state.session, id, 0, {id, nil})
+    {:reply, song, state}
   end
-  # TODO: This could do with a tidy...
+  def handle_call({:add, song}, _from, state = %__MODULE__{id: id}) do
+    session = state.session ++ [{id, %Song{song | id: id}}]
+    {:reply, strip_ids(session), %__MODULE__{state | session: session, id: id + 1}}
+  end
   def handle_call({:increment, user_id, song_id}, _from, state = %__MODULE__{session: session}) do
-    case List.keytake(session, song_id, 0) do
-      {{^song_id, song = %Song{}}, updated_session} ->
-        unless Map.has_key?(song.user_votes, user_id) do
-          song = %Song{song |
-            vote_count: song.vote_count + 1,
-            user_votes: Map.put(song.user_votes, user_id, nil)
-          }
-          updated_session = add_song_to_session(updated_session, song, [])
-          {:reply, strip_ids(updated_session), %__MODULE__{state | session: updated_session}}
-        else
-          Logger.warn("User already voted!!!")
-          {:reply, strip_ids(session), state}
-        end
-      nil ->
-        Logger.error("Received unknown increment for Song: #{song_id}")
-        {:reply, strip_ids(session), state}
-    end
+    session =
+      with {{_id, song = %Song{}}, session} <- List.keytake(session, song_id, 0),
+           false                            <- MapSet.member?(song.user_votes, user_id)
+      do
+        song = %Song{song |
+          vote_count: song.vote_count + 1,
+          user_votes: MapSet.put(song.user_votes, user_id)
+        }
+
+        add_song_to_session(session, song)
+      else
+        # List.keytake/3 case
+        nil ->
+          Logger.error("Received increment for unknown Song: #{song_id} Session: #{state.session_id}")
+          session
+
+        # Mapset.member?/2 case
+        true ->
+          Logger.warn("User already voted for Song: #{song_id} Session: #{state.session_id} User: #{user_id}")
+          session
+      end
+
+    {:reply, strip_ids(session), %__MODULE__{state | session: session}}
   end
   def handle_call({:decrement, user_id, song_id}, _from, state = %__MODULE__{session: session}) do
-    case List.keytake(session, song_id, 0) do
-      {{^song_id, song = %Song{}}, updated_session} ->
-        if Map.has_key?(song.user_votes, user_id) do
-          song = %Song{song |
-            vote_count: song.vote_count - 1,
-            user_votes: Map.delete(song.user_votes, user_id)
-          }
-          updated_session = add_song_to_session(updated_session, song, [])
-          {:reply, strip_ids(updated_session), %__MODULE__{state | session: updated_session}}
-        else
-          Logger.warn("User hasn't voted!!!")
-          {:reply, strip_ids(session), state}
-        end
-      nil ->
-        Logger.error("Received unknown decrement for Song: #{song_id}")
-        {:reply, strip_ids(session), state}
-    end
+    session =
+      with {{_id, song = %Song{}}, session} <- List.keytake(session, song_id, 0),
+           true                             <- MapSet.member?(song.user_votes, user_id)
+      do
+        song = %Song{song |
+          vote_count: song.vote_count - 1,
+          user_votes: MapSet.delete(song.user_votes, user_id)
+        }
+
+        add_song_to_session(session, song)
+      else
+        # List.keytake/3 case
+        nil ->
+          Logger.error("Received decrement for unknown Song: #{song_id} Session: #{state.session_id}")
+          session
+
+        # Mapset.member?/2 case
+        false ->
+          Logger.warn("User hasn't voted for Song: #{song_id} Session: #{state.session_id} User: #{user_id}")
+          session
+      end
+
+    {:reply, strip_ids(session), %__MODULE__{state | session: session}}
   end
-  # TODO: Add test for this guy
   def handle_call({:update, song}, _from, state = %__MODULE__{}) do
     session = state.session
     |> List.keydelete(song.id, 0)
@@ -193,15 +205,21 @@ defmodule Democrify.Session.Worker do
     session = List.keydelete(state.session, song_id, 0)
     {:reply, strip_ids(session), %__MODULE__{state | session: session}}
   end
+  def handle_call(:get_current_song, _from, state = %__MODULE__{}) do
+    {:reply, state.current_song, state}
+  end
 
   @impl true
   def handle_info({:updated_spotify_data, spotify_data}, state = %__MODULE__{}) do
     Logger.info("Session Worker #{state.session_id} received new spotify_data")
     {:noreply, %__MODULE__{state | spotify_data: spotify_data}}
   end
+  def handle_info({:current_song, song = %Song{}}, state = %__MODULE__{}) do
+    {:noreply, %__MODULE__{state | current_song: song}}
+  end
   def handle_info({:EXIT, _pid, reason}, state = %__MODULE__{}) do
     Logger.error("Player Crashed, Reason: #{inspect reason}")
-    {:ok, player_pid} = SpotifyPlayer.start_link(state.session_id, state.spotify_data)
+    {:ok, player_pid} = Player.start_link(state.session_id, state.spotify_data)
     {:noreply, %__MODULE__{state | player_pid: player_pid}}
   end
 
@@ -209,18 +227,12 @@ defmodule Democrify.Session.Worker do
   # Internal functions
   # =================================
 
-    # TODO: Improve this logic??
-  defp add_song_to_session([], bumped_song = %Song{}, acc) do
-    acc ++ [{bumped_song.id, bumped_song}]
+  defp add_song_to_session([], song = %Song{}), do: [{song.id, song}]
+  defp add_song_to_session([{id, song = %Song{}} | tail], new_song = %Song{}) when song.vote_count < new_song.vote_count do
+    [{new_song.id, new_song}, {id, song} | tail]
   end
-  defp add_song_to_session([{song_id, song = %Song{}} | tail] = list, bumped_song = %Song{}, acc) do
-    case song.vote_count < bumped_song.vote_count do
-      false ->
-        add_song_to_session(tail, bumped_song, acc ++ [{song_id, song}])
-
-      true ->
-        acc ++ [{bumped_song.id, bumped_song}] ++ list
-    end
+  defp add_song_to_session([{id, song = %Song{}} | tail], new_song = %Song{}) do
+    [{id, song} | add_song_to_session(tail, new_song)]
   end
 
   defp strip_ids(list) do

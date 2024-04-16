@@ -5,7 +5,6 @@ defmodule DemocrifyWeb.PageController do
   alias Democrify.Spotify
   alias Democrify.Session
   alias Democrify.Spotify.{Tokens, Profile}
-  alias Democrify.Session.Registry
 
   # ===========================================================
   # Home Page Handlers
@@ -26,16 +25,15 @@ defmodule DemocrifyWeb.PageController do
   # ===========================================================
 
   @doc """
-    TODO:
+    Redirect to the Spotify authorize URL.
   """
   @spec login(Plug.Conn.t(), map()) :: Plug.Conn.t()
-  def login(conn, %{"type" => type} = params) when type in ["create", "join"] do
-    Logger.info("Params: #{inspect params}")
+  def login(conn, %{"type" => type}) when type in ["create", "join"] do
     redirect(conn, external: Spotify.authorize_url(type))
   end
 
   @doc """
-    TODO:
+    The Callback endpoint for the Spotify Auth process to call.
   """
   @spec callback(Plug.Conn.t(), map()) :: Plug.Conn.t()
   def callback(conn, %{"type" => type} = params) when type in ["create", "join"] do
@@ -72,21 +70,18 @@ defmodule DemocrifyWeb.PageController do
   end
 
   @doc """
-    TODO:
+    Endpoint called when user joins an existing session.
   """
-  # TODO: don't meed to fetch access token, can just check if session exists.
   @spec join(Plug.Conn.t(), map()) :: Plug.Conn.t()
   def join(conn, params) do
-    case Registry.lookup(params["session_id"]) do
-      {:ok, _pid} ->
-        conn
-        |> put_session(:session_id, params["session_id"])
-        |> redirect(to: ~p"/login/join")
-
-      {:error, :notfound} ->
-        conn
-        |> put_flash(:error, "'#{params["session_id"]}' doesn't look to be a current session!!")
-        |> redirect(to: ~p"/")
+    if Session.exists?(params["session_id"]) do
+      conn
+      |> put_session(:session_id, params["session_id"])
+      |> redirect(to: ~p"/login/join")
+    else
+      conn
+      |> put_flash(:error, "'#{params["session_id"]}' doesn't look to be a current session!!")
+      |> redirect(to: ~p"/")
     end
   end
 end
