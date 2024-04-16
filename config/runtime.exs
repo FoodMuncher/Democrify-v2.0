@@ -33,6 +33,15 @@ if config_env() == :prod do
       You can generate one by calling: mix phx.gen.secret
       """
 
+  client_secret = System.get_env("CLIENT_SECRET") ||
+    raise """
+    environment variable SECRET_KEY_BASE is missing.
+    This can be obtained from the spotify developers dashboard.
+    """
+
+  config :democrify, Democrify.Spotify,
+    client_secret: client_secret
+
   host = System.get_env("PHX_HOST") || "example.com"
   port = String.to_integer(System.get_env("PORT") || "4000")
 

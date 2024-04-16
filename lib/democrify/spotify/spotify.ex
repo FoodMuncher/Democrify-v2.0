@@ -13,7 +13,6 @@ defmodule Democrify.Spotify do
   @redirect_uri "http://#{@redirect_base_url}/callback"
   @scope "user-read-private user-read-email user-read-playback-state user-modify-playback-state"
   @client_id "4ccc8676aaf54c94a6400ce027c1c93e"
-  @client_secret "7a60fbf860574f59a73702e27e7265ff"
 
   @type t() :: %__MODULE__{
     user_id:       String.t(),
@@ -212,7 +211,7 @@ defmodule Democrify.Spotify do
 
   defp token_header() do
     [
-      Authorization:  "Basic #{Base.encode64("#{@client_id}:#{@client_secret}")}",
+      Authorization:  "Basic #{Base.encode64("#{@client_id}:#{client_secret()}")}",
       "Content-Type": "application/x-www-form-urlencoded"
     ]
   end
@@ -222,6 +221,10 @@ defmodule Democrify.Spotify do
   end
   defp auth_header(access_token) do
     [Authorization: "Bearer #{access_token}"]
+  end
+
+  defp client_secret() do
+    Application.get_env(:democrify, Democrify.Spotify)[:client_secret]
   end
 
   defp broadcast(spotify_data = %__MODULE__{}) do

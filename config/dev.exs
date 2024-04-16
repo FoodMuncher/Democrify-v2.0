@@ -19,6 +19,9 @@ config :democrify, DemocrifyWeb.Endpoint,
     tailwind: {Tailwind, :install_and_run, [:default, ~w(--watch)]}
   ]
 
+config :democrify, Democrify.Spotify,
+  client_secret: "3ad1a56376e740dfb1d407f082073fe4"
+
 # ## SSL Support
 #
 # In order to use HTTPS in development, a self-signed
